@@ -20,7 +20,6 @@ type GoogleClientConfig struct {
 	ClientID     string
 	ClientSecret string
 	Scope        string
-	BigQuery     *bigquerytools.BigQuery
 }
 
 const (
@@ -32,7 +31,7 @@ const (
 
 // methods
 //
-func NewGoogleClient(googleClientConfig GoogleClientConfig) *GoogleClient {
+func NewGoogleClient(googleClientConfig GoogleClientConfig, bigQuery *bigquerytools.BigQuery) *GoogleClient {
 	gc := GoogleClient{}
 	maxRetries := uint(3)
 	config := oauth2.OAuth2Config{
@@ -46,7 +45,7 @@ func NewGoogleClient(googleClientConfig GoogleClientConfig) *GoogleClient {
 		TokenHTTPMethod: tokenHTTPMethod,
 		MaxRetries:      &maxRetries,
 	}
-	gc.oAuth2 = oauth2.NewOAuth(config, googleClientConfig.BigQuery)
+	gc.oAuth2 = oauth2.NewOAuth(config, bigQuery)
 	return &gc
 }
 
@@ -54,7 +53,7 @@ func (gc *GoogleClient) InitToken() *errortools.Error {
 	return gc.oAuth2.InitToken()
 }
 
-func (gc *GoogleClient) get(url string, model interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (gc *GoogleClient) Get(url string, model interface{}) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	request, response, e := gc.oAuth2.Get(url, model, &err)
 	if e != nil {
@@ -68,7 +67,7 @@ func (gc *GoogleClient) get(url string, model interface{}) (*http.Request, *http
 	return request, response, nil
 }
 
-func (gc *GoogleClient) patch(url string, requestBody []byte, model interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (gc *GoogleClient) Patch(url string, requestBody []byte, model interface{}) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	request, response, e := gc.oAuth2.Patch(url, bytes.NewBuffer(requestBody), model, &err)
 	if e != nil {
