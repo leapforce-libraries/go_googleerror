@@ -1,7 +1,6 @@
 package google
 
 import (
-	"bytes"
 	"net/http"
 
 	errortools "github.com/leapforce-libraries/go_errortools"
@@ -68,30 +67,44 @@ func (gc *GoogleClient) InitToken() *errortools.Error {
 	return gc.oAuth2.InitToken()
 }
 
-func (gc *GoogleClient) Get(url string, model interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (gc *GoogleClient) Get(url string, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
-	request, response, e := gc.oAuth2.Get(url, model, &err)
-	if e != nil {
-		if err.Error.Message != "" {
-			e.SetMessage(err.Error.Message)
-		}
-
-		return request, response, e
-	}
-
-	return request, response, nil
+	request, response, e := gc.oAuth2.Get(url, responseModel, &err)
+	return request, response, gc.captureError(e, &err)
 }
 
-func (gc *GoogleClient) Patch(url string, requestBody []byte, model interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (gc *GoogleClient) Post(url string, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
-	request, response, e := gc.oAuth2.Patch(url, bytes.NewBuffer(requestBody), model, &err)
-	if e != nil {
-		if err.Error.Message != "" {
-			e.SetMessage(err.Error.Message)
-		}
+	request, response, e := gc.oAuth2.Post(url, bodyModel, responseModel, &err)
+	return request, response, gc.captureError(e, &err)
+}
 
-		return request, response, e
+func (gc *GoogleClient) Put(url string, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
+	err := ErrorResponse{}
+	request, response, e := gc.oAuth2.Put(url, bodyModel, responseModel, &err)
+	return request, response, gc.captureError(e, &err)
+}
+
+func (gc *GoogleClient) Patch(url string, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
+	err := ErrorResponse{}
+	request, response, e := gc.oAuth2.Patch(url, bodyModel, responseModel, &err)
+	return request, response, gc.captureError(e, &err)
+}
+
+func (gc *GoogleClient) Delete(url string, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
+	err := ErrorResponse{}
+	request, response, e := gc.oAuth2.Delete(url, bodyModel, responseModel, &err)
+	return request, response, gc.captureError(e, &err)
+}
+
+func (gc *GoogleClient) captureError(e *errortools.Error, err *ErrorResponse) *errortools.Error {
+	if e == nil || err == nil {
+		return nil
 	}
 
-	return request, response, nil
+	if err.Error.Message != "" {
+		e.SetMessage(err.Error.Message)
+	}
+
+	return e
 }
