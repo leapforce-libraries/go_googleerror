@@ -114,7 +114,7 @@ func getToken(apiName string, clientID string, bq *BigQuery) (*oauth2.Token, *er
 
 	tokenBQ := new(TokenBQ)
 
-	e := bq.GetStruct("", tableRefreshToken, sqlSelect, sqlWhere, &tokenBQ)
+	e := bq.GetStruct("", tableRefreshToken, sqlSelect, sqlWhere, tokenBQ)
 	if e != nil {
 		return nil, e
 	}
