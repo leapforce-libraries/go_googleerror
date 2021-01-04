@@ -100,7 +100,6 @@ func (gc *GoogleClient) Patch(url string, requestBody []byte, model interface{})
 }
 
 func getToken(apiName string, clientID string, bq *BigQuery) (*oauth2.Token, *errortools.Error) {
-	fmt.Println("***getToken***")
 	sqlSelect := "TokenType, AccessToken, RefreshToken, Expiry, Scope"
 	sqlWhere := fmt.Sprintf("Api = '%s' AND ClientID = '%s'", apiName, clientID)
 
