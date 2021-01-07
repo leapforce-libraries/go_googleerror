@@ -67,33 +67,33 @@ func (gc *GoogleClient) InitToken() *errortools.Error {
 	return gc.oAuth2.InitToken()
 }
 
-func (gc *GoogleClient) Get(url string, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (gc *GoogleClient) Get(url string, headers *http.Header, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
-	request, response, e := gc.oAuth2.Get(url, responseModel, &err)
+	request, response, e := gc.oAuth2.Get(url, headers, responseModel, &err)
 	return request, response, gc.captureError(e, &err)
 }
 
-func (gc *GoogleClient) Post(url string, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (gc *GoogleClient) Post(url string, headers *http.Header, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
-	request, response, e := gc.oAuth2.Post(url, bodyModel, responseModel, &err)
+	request, response, e := gc.oAuth2.Post(url, headers, bodyModel, responseModel, &err)
 	return request, response, gc.captureError(e, &err)
 }
 
-func (gc *GoogleClient) Put(url string, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (gc *GoogleClient) Put(url string, headers *http.Header, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
-	request, response, e := gc.oAuth2.Put(url, bodyModel, responseModel, &err)
+	request, response, e := gc.oAuth2.Put(url, headers, bodyModel, responseModel, &err)
 	return request, response, gc.captureError(e, &err)
 }
 
-func (gc *GoogleClient) Patch(url string, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (gc *GoogleClient) Patch(url string, headers *http.Header, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
-	request, response, e := gc.oAuth2.Patch(url, bodyModel, responseModel, &err)
+	request, response, e := gc.oAuth2.Patch(url, headers, bodyModel, responseModel, &err)
 	return request, response, gc.captureError(e, &err)
 }
 
-func (gc *GoogleClient) Delete(url string, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (gc *GoogleClient) Delete(url string, headers *http.Header, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
-	request, response, e := gc.oAuth2.Delete(url, bodyModel, responseModel, &err)
+	request, response, e := gc.oAuth2.Delete(url, headers, bodyModel, responseModel, &err)
 	return request, response, gc.captureError(e, &err)
 }
 
