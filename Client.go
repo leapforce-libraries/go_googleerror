@@ -110,3 +110,7 @@ func (gc *GoogleClient) captureError(e *errortools.Error, err *ErrorResponse) *e
 
 	return e
 }
+
+func (gc *GoogleClient) ValidateToken() (*oauth2.Token, *errortools.Error) {
+	return gc.oAuth2.ValidateToken()
+}
