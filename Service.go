@@ -4,14 +4,15 @@ import (
 	"net/http"
 
 	errortools "github.com/leapforce-libraries/go_errortools"
+	bigquery "github.com/leapforce-libraries/go_google/bigquery"
 	oauth2 "github.com/leapforce-libraries/go_oauth2"
 )
 
 // Service stores GoogleService configuration
 //
 type Service struct {
-	oAuth2   *oauth2.OAuth2
-	bigQuery *BigQuery
+	oAuth2          *oauth2.OAuth2
+	bigQueryService *bigquery.Service
 }
 
 type ServiceConfig struct {
@@ -32,13 +33,13 @@ const (
 
 // methods
 //
-func NewService(serviceConfig ServiceConfig, bigQuery *BigQuery) *Service {
+func NewService(serviceConfig ServiceConfig, service *bigquery.Service) *Service {
 	getTokenFunction := func() (*oauth2.Token, *errortools.Error) {
-		return GetToken(serviceConfig.APIName, serviceConfig.ClientID, bigQuery)
+		return GetToken(serviceConfig.APIName, serviceConfig.ClientID, service)
 	}
 
 	saveTokenFunction := func(token *oauth2.Token) *errortools.Error {
-		return SaveToken(serviceConfig.APIName, serviceConfig.ClientID, token, bigQuery)
+		return SaveToken(serviceConfig.APIName, serviceConfig.ClientID, token, service)
 	}
 
 	maxRetries := uint(3)
@@ -55,7 +56,7 @@ func NewService(serviceConfig ServiceConfig, bigQuery *BigQuery) *Service {
 		NonDefaultHeaders: serviceConfig.NonDefaultHeaders,
 		MaxRetries:        &maxRetries,
 	}
-	return &Service{oauth2.NewOAuth(oauht2Config), bigQuery}
+	return &Service{oauth2.NewOAuth(oauht2Config), service}
 }
 
 func (service *Service) InitToken() *errortools.Error {

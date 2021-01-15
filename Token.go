@@ -4,31 +4,32 @@ import (
 	"fmt"
 	"time"
 
-	"cloud.google.com/go/bigquery"
+	_bigquery "cloud.google.com/go/bigquery"
 	errortools "github.com/leapforce-libraries/go_errortools"
+	bigquery "github.com/leapforce-libraries/go_google/bigquery"
 	oauth2 "github.com/leapforce-libraries/go_oauth2"
 )
 
 type Token struct {
-	AccessToken  bigquery.NullString
-	Scope        bigquery.NullString
-	TokenType    bigquery.NullString
-	RefreshToken bigquery.NullString
-	Expiry       bigquery.NullTimestamp
+	AccessToken  _bigquery.NullString
+	Scope        _bigquery.NullString
+	TokenType    _bigquery.NullString
+	RefreshToken _bigquery.NullString
+	Expiry       _bigquery.NullTimestamp
 }
 
-func GetToken(apiName string, clientID string, bq *BigQuery) (*oauth2.Token, *errortools.Error) {
+func GetToken(apiName string, clientID string, service *bigquery.Service) (*oauth2.Token, *errortools.Error) {
 	sqlSelect := "TokenType, AccessToken, RefreshToken, Expiry, Scope"
 	sqlWhere := fmt.Sprintf("Api = '%s' AND ClientID = '%s'", apiName, clientID)
 
 	token := new(Token)
 
-	e := bq.GetStruct("", tableRefreshToken, sqlSelect, sqlWhere, token)
+	e := service.GetStruct("", tableRefreshToken, sqlSelect, sqlWhere, token)
 	if e != nil {
 		return nil, e
 	}
 
-	expiry := NullTimestampToTime(token.Expiry)
+	expiry := bigquery.NullTimestampToTime(token.Expiry)
 
 	if expiry != nil {
 		//convert to UTC
@@ -38,16 +39,16 @@ func GetToken(apiName string, clientID string, bq *BigQuery) (*oauth2.Token, *er
 	}
 
 	return &oauth2.Token{
-		NullStringToString(token.AccessToken),
-		NullStringToString(token.Scope),
-		NullStringToString(token.TokenType),
+		bigquery.NullStringToString(token.AccessToken),
+		bigquery.NullStringToString(token.Scope),
+		bigquery.NullStringToString(token.TokenType),
 		nil,
-		NullStringToString(token.RefreshToken),
+		bigquery.NullStringToString(token.RefreshToken),
 		expiry,
 	}, nil
 }
 
-func SaveToken(apiName string, clientID string, token *oauth2.Token, bq *BigQuery) *errortools.Error {
+func SaveToken(apiName string, clientID string, token *oauth2.Token, service *bigquery.Service) *errortools.Error {
 	if token == nil {
 		return nil
 	}
@@ -107,5 +108,5 @@ func SaveToken(apiName string, clientID string, token *oauth2.Token, bq *BigQuer
 		"	INSERT (Api, ClientID, TokenType, AccessToken, RefreshToken, Expiry, Scope) " +
 		"	VALUES (SOURCE.Api, SOURCE.ClientID, SOURCE.TokenType, SOURCE.AccessToken, SOURCE.RefreshToken, SOURCE.Expiry, SOURCE.Scope)"
 
-	return bq.Run(nil, sql, "saving token")
+	return service.Run(nil, sql, "saving token")
 }

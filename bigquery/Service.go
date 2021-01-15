@@ -10,6 +10,7 @@ import (
 	"time"
 
 	errortools "github.com/leapforce-libraries/go_errortools"
+	credentials "github.com/leapforce-libraries/go_google/credentials"
 	types "github.com/leapforce-libraries/go_types"
 
 	"cloud.google.com/go/bigquery"
@@ -19,38 +20,45 @@ import (
 	"google.golang.org/api/option"
 )
 
-// BigQuery stores context of BigQuery object
+// Service stores context of Service object
 //
-type BigQuery struct {
-	Credentials *CredentialsJSON
-	ProjectID   string
+type Service struct {
+	credentials *credentials.CredentialsJSON
+	projectID   string
+}
+
+func NewService(credentialsJson *credentials.CredentialsJSON, projectID string) *Service {
+	return &Service{
+		credentials: credentialsJson,
+		projectID:   projectID,
+	}
 }
 
 // isValid checks whether necessary credentials file and projectid are set
-func (bq *BigQuery) isValid() *errortools.Error {
-	if bq.Credentials == nil || bq.Credentials == new(CredentialsJSON) || bq.ProjectID == "" {
-		return errortools.ErrorMessage("BigQuery CredentialsFile and/or ProjectID not set.")
+func (service *Service) isValid() *errortools.Error {
+	if service.credentials == nil || service.credentials == new(credentials.CredentialsJSON) || service.projectID == "" {
+		return errortools.ErrorMessage("Service CredentialsFile and/or ProjectID not set.")
 	}
 
 	return nil
 }
 
-// CreateClient creates client object for BigQuery
+// CreateClient creates client object for Service
 //
-func (bq *BigQuery) CreateClient() (*bigquery.Client, *errortools.Error) {
-	e := bq.isValid()
+func (service *Service) CreateClient() (*bigquery.Client, *errortools.Error) {
+	e := service.isValid()
 	if e != nil {
 		return nil, e
 	}
 
 	ctx := context.Background()
 
-	credJSON, err := json.Marshal(bq.Credentials)
+	credJSON, err := json.Marshal(service.credentials)
 	if err != nil {
 		return nil, errortools.ErrorMessage(err)
 	}
 
-	cl, err := bigquery.NewClient(ctx, bq.ProjectID, option.WithCredentialsJSON(credJSON))
+	cl, err := bigquery.NewClient(ctx, service.projectID, option.WithCredentialsJSON(credJSON))
 	if err != nil {
 		return nil, errortools.ErrorMessage(err)
 	}
@@ -58,11 +66,11 @@ func (bq *BigQuery) CreateClient() (*bigquery.Client, *errortools.Error) {
 	return cl, nil
 }
 
-// TableExists checks whether or not specified table exists in BigQuery
+// TableExists checks whether or not specified table exists in Service
 //
-func (bq *BigQuery) TableExists(client *bigquery.Client, datasetName string, tableName string) (bool, *errortools.Error) {
+func (service *Service) TableExists(client *bigquery.Client, datasetName string, tableName string) (bool, *errortools.Error) {
 	if client == nil {
-		_client, err := bq.CreateClient()
+		_client, err := service.CreateClient()
 		if err != nil {
 			return false, err
 		}
@@ -70,7 +78,7 @@ func (bq *BigQuery) TableExists(client *bigquery.Client, datasetName string, tab
 		client = _client
 	}
 
-	err := bq.isValid()
+	err := service.isValid()
 	if err != nil {
 		return false, err
 	}
@@ -98,9 +106,9 @@ func (bq *BigQuery) TableExists(client *bigquery.Client, datasetName string, tab
 
 // CreateTable : creates table based on passed struct scheme
 //
-func (bq *BigQuery) CreateTable(client *bigquery.Client, datasetName string, tableName string, schema interface{}, recreate bool) (*bigquery.Table, *errortools.Error) {
+func (service *Service) CreateTable(client *bigquery.Client, datasetName string, tableName string, schema interface{}, recreate bool) (*bigquery.Table, *errortools.Error) {
 	if client == nil {
-		_client, e := bq.CreateClient()
+		_client, e := service.CreateClient()
 		if e != nil {
 			return nil, e
 		}
@@ -108,7 +116,7 @@ func (bq *BigQuery) CreateTable(client *bigquery.Client, datasetName string, tab
 		client = _client
 	}
 
-	e := bq.isValid()
+	e := service.isValid()
 	if e != nil {
 		return nil, e
 	}
@@ -119,7 +127,7 @@ func (bq *BigQuery) CreateTable(client *bigquery.Client, datasetName string, tab
 	table := dataset.Table(tableName)
 
 	// check whether table exists
-	tableExists, errExists := bq.TableExists(client, datasetName, tableName)
+	tableExists, errExists := service.TableExists(client, datasetName, tableName)
 	if errExists != nil {
 		return table, errExists
 	}
@@ -144,7 +152,7 @@ func (bq *BigQuery) CreateTable(client *bigquery.Client, datasetName string, tab
 		}
 
 		count := 0
-		tableExists, e = bq.TableExists(client, datasetName, tableName)
+		tableExists, e = service.TableExists(client, datasetName, tableName)
 		if errExists != nil {
 			return table, e
 		}
@@ -153,7 +161,7 @@ func (bq *BigQuery) CreateTable(client *bigquery.Client, datasetName string, tab
 				break
 			}
 
-			tableExists, e = bq.TableExists(client, datasetName, tableName)
+			tableExists, e = service.TableExists(client, datasetName, tableName)
 			if errExists != nil {
 				return table, e
 			}
@@ -165,9 +173,9 @@ func (bq *BigQuery) CreateTable(client *bigquery.Client, datasetName string, tab
 	return table, nil
 }
 
-func (bq *BigQuery) DeleteTable(client *bigquery.Client, datasetName string, tableName string) *errortools.Error {
+func (service *Service) DeleteTable(client *bigquery.Client, datasetName string, tableName string) *errortools.Error {
 	if client == nil {
-		_client, err := bq.CreateClient()
+		_client, err := service.CreateClient()
 		if err != nil {
 			return err
 		}
@@ -195,11 +203,11 @@ func (bq *BigQuery) DeleteTable(client *bigquery.Client, datasetName string, tab
 	return nil
 }
 
-// Run is a generic function that runs the passed sql query in BigQuery
+// Run is a generic function that runs the passed sql query in Service
 //
-func (bq *BigQuery) Run(client *bigquery.Client, sql string, pendingMessage string) *errortools.Error {
+func (service *Service) Run(client *bigquery.Client, sql string, pendingMessage string) *errortools.Error {
 	if client == nil {
-		_client, err := bq.CreateClient()
+		_client, err := service.CreateClient()
 		if err != nil {
 			return err
 		}
@@ -207,7 +215,7 @@ func (bq *BigQuery) Run(client *bigquery.Client, sql string, pendingMessage stri
 		client = _client
 	}
 
-	e := bq.isValid()
+	e := service.isValid()
 	if e != nil {
 		return e
 	}
@@ -244,10 +252,10 @@ func (bq *BigQuery) Run(client *bigquery.Client, sql string, pendingMessage stri
 	return nil
 }
 
-// Insert : generic function to batchwise stream data to a BigQuery table
+// Insert : generic function to batchwise stream data to a Service table
 //
-func (bq *BigQuery) Insert(table *bigquery.Table, array []interface{}) *errortools.Error {
-	err := bq.isValid()
+func (service *Service) Insert(table *bigquery.Table, array []interface{}) *errortools.Error {
+	err := service.isValid()
 	if err != nil {
 		return err
 	}
@@ -285,15 +293,15 @@ func (bq *BigQuery) Insert(table *bigquery.Table, array []interface{}) *errortoo
 	return nil
 }
 
-// InsertSlice : generic function to batchwise stream array into BigQuery table
+// InsertSlice : generic function to batchwise stream array into Service table
 //
-func (bq *BigQuery) InsertSlice(datasetName string, slice []interface{}, model interface{}, tableName string) *errortools.Error {
-	err := bq.isValid()
+func (service *Service) InsertSlice(datasetName string, slice []interface{}, model interface{}, tableName string) *errortools.Error {
+	err := service.isValid()
 	if err != nil {
 		return err
 	}
 
-	client, errClient := bq.CreateClient()
+	client, errClient := service.CreateClient()
 	if errClient != nil {
 		return errClient
 	}
@@ -303,12 +311,12 @@ func (bq *BigQuery) InsertSlice(datasetName string, slice []interface{}, model i
 		tableName = "temp_" + strings.Replace(guid.String(), "-", "", -1)
 	}
 
-	table, errTable := bq.CreateTable(client, datasetName, tableName, model, false)
+	table, errTable := service.CreateTable(client, datasetName, tableName, model, false)
 	if errTable != nil {
 		return errTable
 	}
 
-	errInsert := bq.Insert(table, slice)
+	errInsert := service.Insert(table, slice)
 	if errInsert != nil {
 		return errInsert
 	}
@@ -318,7 +326,7 @@ func (bq *BigQuery) InsertSlice(datasetName string, slice []interface{}, model i
 
 // Select returns RowIterator from arbitrary select_ query (was: Get)
 //
-func (bq *BigQuery) Select(datasetName string, tableOrViewName string, sqlSelect string, sqlWhere string, sqlOrderBy string) (*bigquery.RowIterator, *errortools.Error) {
+func (service *Service) Select(datasetName string, tableOrViewName string, sqlSelect string, sqlWhere string, sqlOrderBy string) (*bigquery.RowIterator, *errortools.Error) {
 	if sqlSelect == "" {
 		sqlSelect = "*"
 	}
@@ -342,24 +350,24 @@ func (bq *BigQuery) Select(datasetName string, tableOrViewName string, sqlSelect
 	sql := "SELECT " + sqlSelect + " FROM `" + datasetName + "." + tableOrViewName + "` " + sqlWhere + " " + sqlOrderBy
 	//fmt.Println(sql)
 
-	return bq.select_(sql)
+	return service.select_(sql)
 }
 
 // SelectRaw returns RowIterator from arbitrary select_ query (was: Get)
 //
-func (bq *BigQuery) SelectRaw(sql string) (*bigquery.RowIterator, *errortools.Error) {
-	return bq.select_(sql)
+func (service *Service) SelectRaw(sql string) (*bigquery.RowIterator, *errortools.Error) {
+	return service.select_(sql)
 }
 
 // select_ returns RowIterator from arbitrary select_ query
 //
-func (bq *BigQuery) select_(sql string) (*bigquery.RowIterator, *errortools.Error) {
-	e := bq.isValid()
+func (service *Service) select_(sql string) (*bigquery.RowIterator, *errortools.Error) {
+	e := service.isValid()
 	if e != nil {
 		return nil, e
 	}
 
-	client, e := bq.CreateClient()
+	client, e := service.CreateClient()
 	if e != nil {
 		return nil, e
 	}
@@ -378,7 +386,7 @@ func (bq *BigQuery) select_(sql string) (*bigquery.RowIterator, *errortools.Erro
 
 // Delete deletes rows from table
 //
-func (bq *BigQuery) Delete(datasetName string, tableName string, sqlWhere string) *errortools.Error {
+func (service *Service) Delete(datasetName string, tableName string, sqlWhere string) *errortools.Error {
 	//sqlWhere = strings.Trim(strings.ToLower(sqlWhere), " ")
 
 	if sqlWhere != "" {
@@ -391,13 +399,13 @@ func (bq *BigQuery) Delete(datasetName string, tableName string, sqlWhere string
 
 	//fmt.Println(sql)
 
-	return bq.Run(nil, sql, "deleting")
+	return service.Run(nil, sql, "deleting")
 }
 
-// Merge runs merge query in BigQuery, schema contains the table schema which needs to match the BigQuery table.
+// Merge runs merge query in Service, schema contains the table schema which needs to match the Service table.
 // All properties of model with suffix 'Json' will be ignored. All rows with Ignore = TRUE will be ignored as well.
 //
-func (bq *BigQuery) Merge(schema interface{}, sourceTable string, targetTable string, idField string, hasIgnoreField bool) *errortools.Error {
+func (service *Service) Merge(schema interface{}, sourceTable string, targetTable string, idField string, hasIgnoreField bool) *errortools.Error {
 	var sqlUpdate, sqlInsert, sqlValues string = ``, ``, ``
 
 	v := reflect.ValueOf(schema)
@@ -436,13 +444,13 @@ func (bq *BigQuery) Merge(schema interface{}, sourceTable string, targetTable st
 	}
 	sql += " THEN INSERT(" + sqlInsert + ") VALUES(" + sqlValues + ")"
 
-	return bq.Run(nil, sql, "merging")
+	return service.Run(nil, sql, "merging")
 }
 
 // GetValue returns one single value from query
 //
-func (bq *BigQuery) GetValue(datasetName string, tableOrViewName string, sqlSelect string, sqlWhere string) (string, *errortools.Error) {
-	it, err := bq.Select(datasetName, tableOrViewName, sqlSelect, sqlWhere, "")
+func (service *Service) GetValue(datasetName string, tableOrViewName string, sqlSelect string, sqlWhere string) (string, *errortools.Error) {
+	it, err := service.Select(datasetName, tableOrViewName, sqlSelect, sqlWhere, "")
 	if err != nil {
 		return "", err
 	}
@@ -470,8 +478,8 @@ func (bq *BigQuery) GetValue(datasetName string, tableOrViewName string, sqlSele
 
 // GetValues returns multiple values from query
 //
-func (bq *BigQuery) GetValues(datasetName string, tableOrViewName string, sqlSelect string, sqlWhere string) (*[]string, *errortools.Error) {
-	it, err := bq.Select(datasetName, tableOrViewName, sqlSelect, sqlWhere, "")
+func (service *Service) GetValues(datasetName string, tableOrViewName string, sqlSelect string, sqlWhere string) (*[]string, *errortools.Error) {
+	it, err := service.Select(datasetName, tableOrViewName, sqlSelect, sqlWhere, "")
 	if err != nil {
 		return nil, err
 	}
@@ -499,8 +507,8 @@ func (bq *BigQuery) GetValues(datasetName string, tableOrViewName string, sqlSel
 
 // GetStruct returns struct from query
 //
-func (bq *BigQuery) GetStruct(datasetName string, tableOrViewName string, sqlSelect string, sqlWhere string, model interface{}) *errortools.Error {
-	it, e := bq.Select(datasetName, tableOrViewName, sqlSelect, sqlWhere, "")
+func (service *Service) GetStruct(datasetName string, tableOrViewName string, sqlSelect string, sqlWhere string, model interface{}) *errortools.Error {
+	it, e := service.Select(datasetName, tableOrViewName, sqlSelect, sqlWhere, "")
 	if e != nil {
 		return e
 	}
@@ -526,8 +534,8 @@ func (bq *BigQuery) GetStruct(datasetName string, tableOrViewName string, sqlSel
 
 // CopyObjectToTable copies content of GCS object to table
 //
-func (bq *BigQuery) CopyObjectToTable(obj *storage.ObjectHandle, datasetName string, tableName string, schema interface{}, ctx context.Context, truncateTable bool, deleteObject bool) *errortools.Error {
-	client, e := bq.CreateClient()
+func (service *Service) CopyObjectToTable(obj *storage.ObjectHandle, datasetName string, tableName string, schema interface{}, ctx context.Context, truncateTable bool, deleteObject bool) *errortools.Error {
+	client, e := service.CreateClient()
 	if e != nil {
 		return e
 	}
@@ -547,7 +555,7 @@ func (bq *BigQuery) CopyObjectToTable(obj *storage.ObjectHandle, datasetName str
 	flConfig := bigquery.FileConfig{SourceFormat: dataFormat, Schema: schema1}
 	gcsRef.FileConfig = flConfig
 
-	// load data from GCN object to BigQuery
+	// load data from GCN object to Service
 	loader := client.Dataset(datasetName).Table(tableName).LoaderFrom(gcsRef)
 	loader.CreateDisposition = bigquery.CreateIfNeeded
 	tableWriteDisposition := bigquery.WriteAppend
