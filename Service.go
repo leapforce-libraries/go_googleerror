@@ -33,13 +33,13 @@ const (
 
 // methods
 //
-func NewService(serviceConfig ServiceConfig, service *bigquery.Service) *Service {
+func NewService(serviceConfig ServiceConfig, bigQueryService *bigquery.Service) *Service {
 	getTokenFunction := func() (*oauth2.Token, *errortools.Error) {
-		return GetToken(serviceConfig.APIName, serviceConfig.ClientID, service)
+		return GetToken(serviceConfig.APIName, serviceConfig.ClientID, bigQueryService)
 	}
 
 	saveTokenFunction := func(token *oauth2.Token) *errortools.Error {
-		return SaveToken(serviceConfig.APIName, serviceConfig.ClientID, token, service)
+		return SaveToken(serviceConfig.APIName, serviceConfig.ClientID, token, bigQueryService)
 	}
 
 	maxRetries := uint(3)
@@ -56,40 +56,40 @@ func NewService(serviceConfig ServiceConfig, service *bigquery.Service) *Service
 		NonDefaultHeaders: serviceConfig.NonDefaultHeaders,
 		MaxRetries:        &maxRetries,
 	}
-	return &Service{oauth2.NewOAuth(oauht2Config), service}
+	return &Service{oauth2.NewOAuth(oauht2Config), bigQueryService}
 }
 
 func (service *Service) InitToken() *errortools.Error {
 	return service.oAuth2.InitToken()
 }
 
-func (service *Service) Get(url string, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (service *Service) Get(requestConfig *oauth2.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
-	request, response, e := service.oAuth2.Get(url, responseModel, &err)
+	request, response, e := service.oAuth2.Get(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
-func (service *Service) Post(url string, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (service *Service) Post(requestConfig *oauth2.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
-	request, response, e := service.oAuth2.Post(url, bodyModel, responseModel, &err)
+	request, response, e := service.oAuth2.Post(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
-func (service *Service) Put(url string, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (service *Service) Put(requestConfig *oauth2.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
-	request, response, e := service.oAuth2.Put(url, bodyModel, responseModel, &err)
+	request, response, e := service.oAuth2.Put(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
-func (service *Service) Patch(url string, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (service *Service) Patch(requestConfig *oauth2.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
-	request, response, e := service.oAuth2.Patch(url, bodyModel, responseModel, &err)
+	request, response, e := service.oAuth2.Patch(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
-func (service *Service) Delete(url string, bodyModel interface{}, responseModel interface{}) (*http.Request, *http.Response, *errortools.Error) {
+func (service *Service) Delete(requestConfig *oauth2.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
-	request, response, e := service.oAuth2.Delete(url, bodyModel, responseModel, &err)
+	request, response, e := service.oAuth2.Delete(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
