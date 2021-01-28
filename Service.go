@@ -11,8 +11,7 @@ import (
 // Service stores GoogleService configuration
 //
 type Service struct {
-	oAuth2          *oauth2.OAuth2
-	bigQueryService *bigquery.Service
+	oAuth2 *oauth2.OAuth2
 }
 
 type ServiceConfig struct {
@@ -54,7 +53,7 @@ func NewService(serviceConfig ServiceConfig, bigQueryService *bigquery.Service) 
 		SaveTokenFunction: &saveTokenFunction,
 		MaxRetries:        &maxRetries,
 	}
-	return &Service{oauth2.NewOAuth(oauht2Config), bigQueryService}
+	return &Service{oauth2.NewOAuth(oauht2Config)}
 }
 
 func (service *Service) InitToken() *errortools.Error {
