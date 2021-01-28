@@ -22,11 +22,11 @@ type ServiceConfig struct {
 }
 
 const (
-	authURL           string = "https://accounts.google.com/o/oauth2/v2/auth"
-	tokenURL          string = "https://oauth2.googleapis.com/token"
-	tokenHTTPMethod   string = http.MethodPost
-	redirectURL       string = "http://localhost:8080/oauth/redirect"
-	tableRefreshToken string = "leapforce.oauth2"
+	AuthURL           string = "https://accounts.google.com/o/oauth2/v2/auth"
+	TokenURL          string = "https://oauth2.googleapis.com/token"
+	TokenHTTPMethod   string = http.MethodPost
+	RedirectURL       string = "http://localhost:8080/oauth/redirect"
+	TableRefreshToken string = "leapforce.oauth2"
 )
 
 // methods
@@ -45,10 +45,10 @@ func NewService(serviceConfig ServiceConfig, bigQueryService *bigquery.Service) 
 		ClientID:          serviceConfig.ClientID,
 		ClientSecret:      serviceConfig.ClientSecret,
 		Scope:             serviceConfig.Scope,
-		RedirectURL:       redirectURL,
-		AuthURL:           authURL,
-		TokenURL:          tokenURL,
-		TokenHTTPMethod:   tokenHTTPMethod,
+		RedirectURL:       RedirectURL,
+		AuthURL:           AuthURL,
+		TokenURL:          TokenURL,
+		TokenHTTPMethod:   TokenHTTPMethod,
 		GetTokenFunction:  &getTokenFunction,
 		SaveTokenFunction: &saveTokenFunction,
 		MaxRetries:        &maxRetries,

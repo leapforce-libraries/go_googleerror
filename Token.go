@@ -24,7 +24,7 @@ func GetToken(apiName string, clientID string, service *bigquery.Service) (*oaut
 
 	token := new(Token)
 
-	e := service.GetStruct("", tableRefreshToken, sqlSelect, sqlWhere, token)
+	e := service.GetStruct("", TableRefreshToken, sqlSelect, sqlWhere, token)
 	if e != nil {
 		return nil, e
 	}
@@ -91,7 +91,7 @@ func SaveToken(apiName string, clientID string, token *oauth2.Token, service *bi
 		}
 	}
 
-	sql := "MERGE `" + tableRefreshToken + "` AS TARGET " +
+	sql := "MERGE `" + TableRefreshToken + "` AS TARGET " +
 		"USING  (SELECT '" +
 		apiName + "' AS Api,'" +
 		clientID + "' AS ClientID," +
