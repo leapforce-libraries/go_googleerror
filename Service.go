@@ -16,11 +16,10 @@ type Service struct {
 }
 
 type ServiceConfig struct {
-	APIName           string
-	ClientID          string
-	ClientSecret      string
-	Scope             string
-	NonDefaultHeaders *http.Header
+	APIName      string
+	ClientID     string
+	ClientSecret string
+	Scope        string
 }
 
 const (
@@ -53,7 +52,6 @@ func NewService(serviceConfig ServiceConfig, bigQueryService *bigquery.Service) 
 		TokenHTTPMethod:   tokenHTTPMethod,
 		GetTokenFunction:  &getTokenFunction,
 		SaveTokenFunction: &saveTokenFunction,
-		NonDefaultHeaders: serviceConfig.NonDefaultHeaders,
 		MaxRetries:        &maxRetries,
 	}
 	return &Service{oauth2.NewOAuth(oauht2Config), bigQueryService}
