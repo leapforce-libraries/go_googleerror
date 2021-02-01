@@ -614,6 +614,15 @@ func IntToNullInt64(i *int) bigquery.NullInt64 {
 	return ii
 }
 
+func Int64ToNullInt64(i *int64) bigquery.NullInt64 {
+	ii := bigquery.NullInt64{0, false}
+	if i != nil {
+		ii = bigquery.NullInt64{*i, true}
+	}
+
+	return ii
+}
+
 func NullInt64ToInt(i bigquery.NullInt64) *int64 {
 	if i.Valid {
 		return &i.Int64
