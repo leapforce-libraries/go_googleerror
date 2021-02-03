@@ -5,6 +5,7 @@ import (
 
 	errortools "github.com/leapforce-libraries/go_errortools"
 	bigquery "github.com/leapforce-libraries/go_google/bigquery"
+	go_http "github.com/leapforce-libraries/go_http"
 	oauth2 "github.com/leapforce-libraries/go_oauth2"
 )
 
@@ -60,31 +61,31 @@ func (service *Service) InitToken() *errortools.Error {
 	return service.oAuth2.InitToken()
 }
 
-func (service *Service) Get(requestConfig *oauth2.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
+func (service *Service) Get(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	request, response, e := service.oAuth2.Get(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
-func (service *Service) Post(requestConfig *oauth2.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
+func (service *Service) Post(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	request, response, e := service.oAuth2.Post(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
-func (service *Service) Put(requestConfig *oauth2.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
+func (service *Service) Put(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	request, response, e := service.oAuth2.Put(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
-func (service *Service) Patch(requestConfig *oauth2.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
+func (service *Service) Patch(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	request, response, e := service.oAuth2.Patch(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
-func (service *Service) Delete(requestConfig *oauth2.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
+func (service *Service) Delete(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	request, response, e := service.oAuth2.Delete(requestConfig)
 	return request, response, service.captureError(e, &err)
