@@ -41,7 +41,6 @@ func NewService(serviceConfig ServiceConfig, bigQueryService *bigquery.Service) 
 		return SaveToken(serviceConfig.APIName, serviceConfig.ClientID, token, bigQueryService)
 	}
 
-	maxRetries := uint(3)
 	oauht2Config := oauth2.OAuth2Config{
 		ClientID:          serviceConfig.ClientID,
 		ClientSecret:      serviceConfig.ClientSecret,
@@ -52,7 +51,6 @@ func NewService(serviceConfig ServiceConfig, bigQueryService *bigquery.Service) 
 		TokenHTTPMethod:   TokenHTTPMethod,
 		GetTokenFunction:  &getTokenFunction,
 		SaveTokenFunction: &saveTokenFunction,
-		MaxRetries:        &maxRetries,
 	}
 	return &Service{oauth2.NewOAuth(oauht2Config)}
 }
