@@ -68,6 +68,46 @@ func (service *Service) CreateClient() (*bigquery.Client, *errortools.Error) {
 
 // TableExists checks whether or not specified table exists in Service
 //
+func (service *Service) GetTables(client *bigquery.Client, datasetName string) (*[]bigquery.Table, *errortools.Error) {
+	if client == nil {
+		_client, err := service.CreateClient()
+		if err != nil {
+			return nil, err
+		}
+
+		client = _client
+	}
+
+	err := service.isValid()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+
+	tables := []bigquery.Table{}
+
+	it := client.Dataset(datasetName).Tables(ctx)
+
+	for {
+		table, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if table != nil {
+			tables = append(tables, *table)
+		}
+	}
+
+	return &tables, nil
+}
+
+// TableExists checks whether or not specified table exists in Service
+//
 func (service *Service) TableExists(client *bigquery.Client, datasetName string, tableName string) (bool, *errortools.Error) {
 	if client == nil {
 		_client, err := service.CreateClient()
