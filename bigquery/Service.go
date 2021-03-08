@@ -366,28 +366,35 @@ func (service *Service) InsertSlice(datasetName string, slice []interface{}, mod
 
 // Select returns RowIterator from arbitrary select_ query (was: Get)
 //
-func (service *Service) Select(datasetName string, tableOrViewName string, sqlSelect string, sqlWhere string, sqlOrderBy string) (*bigquery.RowIterator, *errortools.Error) {
+func (service *Service) Select(selectConfig *SelectConfig) (*bigquery.RowIterator, *errortools.Error) {
+	sqlSelect := selectConfig.SQLSelect
 	if sqlSelect == "" {
 		sqlSelect = "*"
 	}
 
-	//sqlWhere = strings.Trim(strings.ToLower(sqlWhere), " ")
-
+	sqlWhere := selectConfig.SQLWhere
 	if sqlWhere != "" {
-		if !strings.HasSuffix(sqlWhere, "where ") {
+		if !strings.HasSuffix(strings.ToUpper(sqlWhere), "WHERE ") {
 			sqlWhere = "WHERE " + sqlWhere
 		}
 	}
 
-	//sqlOrderBy = strings.Trim(strings.ToLower(sqlOrderBy), " ")
-
+	sqlOrderBy := ""
+	if selectConfig.SQLOrderBy != nil {
+		sqlOrderBy = *selectConfig.SQLOrderBy
+	}
 	if sqlOrderBy != "" {
-		if !strings.HasSuffix(sqlOrderBy, "order by ") {
+		if !strings.HasSuffix(strings.ToUpper(sqlOrderBy), "ORDER BY ") {
 			sqlOrderBy = "ORDER BY " + sqlOrderBy
 		}
 	}
 
-	sql := "SELECT " + sqlSelect + " FROM `" + datasetName + "." + tableOrViewName + "` " + sqlWhere + " " + sqlOrderBy
+	sqlLimit := ""
+	if selectConfig.SQLLimit != nil {
+		sqlLimit = fmt.Sprintf("LIMIT %v", *selectConfig.SQLLimit)
+	}
+
+	sql := "SELECT " + sqlSelect + " FROM `" + selectConfig.DatasetName + "." + selectConfig.TableOrViewName + "` " + sqlWhere + " " + sqlOrderBy + " " + sqlLimit
 	//fmt.Println(sql)
 
 	return service.select_(sql)
@@ -489,8 +496,8 @@ func (service *Service) Merge(schema interface{}, sourceTable string, targetTabl
 
 // GetValue returns one single value from query
 //
-func (service *Service) GetValue(datasetName string, tableOrViewName string, sqlSelect string, sqlWhere string) (string, *errortools.Error) {
-	it, err := service.Select(datasetName, tableOrViewName, sqlSelect, sqlWhere, "")
+func (service *Service) GetValue(selectConfig *SelectConfig) (string, *errortools.Error) {
+	it, err := service.Select(selectConfig)
 	if err != nil {
 		return "", err
 	}
@@ -518,8 +525,8 @@ func (service *Service) GetValue(datasetName string, tableOrViewName string, sql
 
 // GetValues returns multiple values from query
 //
-func (service *Service) GetValues(datasetName string, tableOrViewName string, sqlSelect string, sqlWhere string) (*[]string, *errortools.Error) {
-	it, err := service.Select(datasetName, tableOrViewName, sqlSelect, sqlWhere, "")
+func (service *Service) GetValues(selectConfig *SelectConfig) (*[]string, *errortools.Error) {
+	it, err := service.Select(selectConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -545,16 +552,26 @@ func (service *Service) GetValues(datasetName string, tableOrViewName string, sq
 	return &values_, nil
 }
 
+type SelectConfig struct {
+	DatasetName     string
+	TableOrViewName string
+	SQLSelect       string
+	SQLWhere        string
+	SQLOrderBy      *string
+	SQLLimit        *uint64
+	Model           interface{}
+}
+
 // GetStruct returns struct from query
 //
-func (service *Service) GetStruct(datasetName string, tableOrViewName string, sqlSelect string, sqlWhere string, model interface{}) *errortools.Error {
-	it, e := service.Select(datasetName, tableOrViewName, sqlSelect, sqlWhere, "")
-	if e != nil {
-		return e
+func (service *Service) GetStruct(selectConfig *SelectConfig, model interface{}) (uint64, *errortools.Error) {
+	if selectConfig == nil {
+		return 0, errortools.ErrorMessage("SelectConfig must be a non-nil pointer")
 	}
 
-	if it.TotalRows > 0 {
-		return errortools.ErrorMessage("Error in GetStruct: Query returns more than one row.")
+	it, e := service.Select(selectConfig)
+	if e != nil {
+		return 0, e
 	}
 
 	for {
@@ -563,13 +580,13 @@ func (service *Service) GetStruct(datasetName string, tableOrViewName string, sq
 			break
 		}
 		if err != nil {
-			return errortools.ErrorMessage(err)
+			return 0, errortools.ErrorMessage(err)
 		}
 
 		break
 	}
 
-	return nil
+	return it.TotalRows, nil
 }
 
 // CopyObjectToTable copies content of GCS object to table
