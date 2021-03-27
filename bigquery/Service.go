@@ -20,74 +20,88 @@ import (
 	"google.golang.org/api/option"
 )
 
+type SQLConfig struct {
+	DatasetName     string
+	TableOrViewName *string
+	SQLSelect       *string
+	SQLWhere        *string
+	SQLOrderBy      *string
+	SQLLimit        *uint64
+	ModelOrSchema   interface{}
+}
+
+func (sqlConfig SQLConfig) GenerateTempTable() SQLConfig {
+	guid := types.NewGUID()
+	tableName := fmt.Sprintf("temp_%s", strings.Replace(guid.String(), "-", "", -1))
+
+	sqlConfig.TableOrViewName = &tableName
+
+	return sqlConfig
+}
+
+func (sqlConfig *SQLConfig) FullTableName() string {
+	if sqlConfig == nil {
+		return ""
+	}
+	if sqlConfig.TableOrViewName == nil {
+		return ""
+	}
+
+	return fmt.Sprintf("%s.%s", sqlConfig.DatasetName, *sqlConfig.TableOrViewName)
+}
+
 // Service stores context of Service object
 //
 type Service struct {
-	credentials *credentials.CredentialsJSON
-	projectID   string
+	bigQueryClient *bigquery.Client
+	context        context.Context
 }
 
-func NewService(credentialsJson *credentials.CredentialsJSON, projectID string) *Service {
+type ServiceConfig struct {
+	CredentialsJSON *credentials.CredentialsJSON
+	ProjectID       string
+}
+
+func NewService(serviceConfig *ServiceConfig) (*Service, *errortools.Error) {
+	if serviceConfig == nil {
+		return nil, errortools.ErrorMessage("ServiceConfig is nil pointer")
+	}
+
+	if serviceConfig.CredentialsJSON == nil {
+		return nil, errortools.ErrorMessage("CredentialsJSON not provided")
+	}
+
+	if serviceConfig.ProjectID == "" {
+		return nil, errortools.ErrorMessage("ProjectID not provided")
+	}
+
+	ctx := context.Background()
+
+	credentialsByte, err := json.Marshal(serviceConfig.CredentialsJSON)
+	if err != nil {
+		return nil, errortools.ErrorMessage(err)
+	}
+
+	client, err := bigquery.NewClient(ctx, serviceConfig.ProjectID, option.WithCredentialsJSON(credentialsByte))
+	if err != nil {
+		return nil, errortools.ErrorMessage(err)
+	}
+
 	return &Service{
-		credentials: credentialsJson,
-		projectID:   projectID,
-	}
+		bigQueryClient: client,
+		context:        ctx,
+	}, nil
 }
 
-// isValid checks whether necessary credentials file and projectid are set
-func (service *Service) isValid() *errortools.Error {
-	if service.credentials == nil || service.credentials == new(credentials.CredentialsJSON) || service.projectID == "" {
-		return errortools.ErrorMessage("Service CredentialsFile and/or ProjectID not set.")
-	}
-
-	return nil
-}
-
-// CreateClient creates client object for Service
-//
-func (service *Service) CreateClient() (*bigquery.Client, *errortools.Error) {
-	e := service.isValid()
+func (service *Service) GetTables(sqlConfig *SQLConfig) (*[]bigquery.Table, *errortools.Error) {
+	dataset, e := service.getDataset(sqlConfig)
 	if e != nil {
 		return nil, e
 	}
 
-	ctx := context.Background()
-
-	credJSON, err := json.Marshal(service.credentials)
-	if err != nil {
-		return nil, errortools.ErrorMessage(err)
-	}
-
-	cl, err := bigquery.NewClient(ctx, service.projectID, option.WithCredentialsJSON(credJSON))
-	if err != nil {
-		return nil, errortools.ErrorMessage(err)
-	}
-
-	return cl, nil
-}
-
-// TableExists checks whether or not specified table exists in Service
-//
-func (service *Service) GetTables(client *bigquery.Client, datasetName string) (*[]bigquery.Table, *errortools.Error) {
-	if client == nil {
-		_client, err := service.CreateClient()
-		if err != nil {
-			return nil, err
-		}
-
-		client = _client
-	}
-
-	err := service.isValid()
-	if err != nil {
-		return nil, err
-	}
-
-	ctx := context.Background()
-
 	tables := []bigquery.Table{}
 
-	it := client.Dataset(datasetName).Tables(ctx)
+	it := dataset.Tables(service.context)
 
 	for {
 		table, err := it.Next()
@@ -106,26 +120,17 @@ func (service *Service) GetTables(client *bigquery.Client, datasetName string) (
 	return &tables, nil
 }
 
-// TableExists checks whether or not specified table exists in Service
-//
-func (service *Service) TableExists(client *bigquery.Client, datasetName string, tableName string) (bool, *errortools.Error) {
-	if client == nil {
-		_client, err := service.CreateClient()
-		if err != nil {
-			return false, err
-		}
-
-		client = _client
+func (service *Service) TableExists(sqlConfig *SQLConfig) (bool, *errortools.Error) {
+	dataset, tableHandle, e := service.getTableHandle(sqlConfig)
+	if e != nil {
+		return false, e
 	}
 
-	err := service.isValid()
-	if err != nil {
-		return false, err
-	}
+	return service.tableExists(dataset, tableHandle)
+}
 
-	ctx := context.Background()
-
-	it := client.Dataset(datasetName).Tables(ctx)
+func (service *Service) tableExists(dataset *bigquery.Dataset, tableHandle *bigquery.Table) (bool, *errortools.Error) {
+	it := dataset.Tables(service.context)
 
 	for {
 		table, err := it.Next()
@@ -135,8 +140,7 @@ func (service *Service) TableExists(client *bigquery.Client, datasetName string,
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		if table.TableID == tableName {
+		if table.TableID == tableHandle.TableID {
 			return true, nil
 		}
 	}
@@ -144,98 +148,111 @@ func (service *Service) TableExists(client *bigquery.Client, datasetName string,
 	return false, nil
 }
 
-// CreateTable : creates table based on passed struct scheme
-//
-func (service *Service) CreateTable(client *bigquery.Client, datasetName string, tableName string, schema interface{}, recreate bool) (*bigquery.Table, *errortools.Error) {
-	if client == nil {
-		_client, e := service.CreateClient()
-		if e != nil {
-			return nil, e
-		}
+func (service *Service) getDataset(sqlConfig *SQLConfig) (*bigquery.Dataset, *errortools.Error) {
+	dataset := service.bigQueryClient.Dataset(sqlConfig.DatasetName)
 
-		client = _client
+	_, err := dataset.Metadata(service.context)
+	if err != nil {
+		fmt.Println(err)
+		return nil, errortools.ErrorMessage(fmt.Sprintf("Dataset %s does not exist.", sqlConfig.DatasetName))
 	}
 
-	e := service.isValid()
+	return dataset, nil
+}
+
+func (service *Service) getTableHandle(sqlConfig *SQLConfig) (*bigquery.Dataset, *bigquery.Table, *errortools.Error) {
+	if sqlConfig.TableOrViewName == nil {
+		return nil, nil, errortools.ErrorMessage("TableOrViewName is nil pointer")
+	}
+
+	dataset, e := service.getDataset(sqlConfig)
+	if e != nil {
+		return nil, nil, errortools.ErrorMessage(e)
+	}
+
+	return dataset, dataset.Table(*sqlConfig.TableOrViewName), nil
+}
+
+// CreateTable : creates table based on passed struct scheme
+//
+func (service *Service) CreateTable(sqlConfig *SQLConfig, data *[]interface{}, recreate bool) (*bigquery.Table, *errortools.Error) {
+	dataset, tableHandle, e := service.getTableHandle(sqlConfig)
 	if e != nil {
 		return nil, e
 	}
 
-	ctx := context.Background()
-
-	dataset := client.Dataset(datasetName)
-	table := dataset.Table(tableName)
-
 	// check whether table exists
-	tableExists, errExists := service.TableExists(client, datasetName, tableName)
-	if errExists != nil {
-		return table, errExists
+	exists, e := service.tableExists(dataset, tableHandle)
+	if e != nil {
+		return nil, e
 	}
 
-	if tableExists && recreate {
+	if exists && recreate {
 		// delete previous table
-		err := table.Delete(ctx)
+		err := tableHandle.Delete(service.context)
 		if err != nil {
-			return table, errortools.ErrorMessage(err)
+			return tableHandle, errortools.ErrorMessage(err)
 		}
 	}
 
-	if !tableExists || recreate {
+	if !exists || recreate {
 		// create schema for temp table
-		schema1, err := bigquery.InferSchema(schema)
+		schema, err := bigquery.InferSchema(sqlConfig.ModelOrSchema)
 		if err != nil {
-			return table, errortools.ErrorMessage(err)
+			return tableHandle, errortools.ErrorMessage(err)
 		}
 
-		if err := table.Create(ctx, &bigquery.TableMetadata{Schema: schema1}); err != nil {
-			return table, errortools.ErrorMessage(err)
+		if err := tableHandle.Create(service.context, &bigquery.TableMetadata{Schema: schema}); err != nil {
+			return tableHandle, errortools.ErrorMessage(err)
 		}
 
 		count := 0
-		tableExists, e = service.TableExists(client, datasetName, tableName)
-		if errExists != nil {
-			return table, e
+		exists, e := service.tableExists(dataset, tableHandle)
+		if e != nil {
+			return nil, e
 		}
 		for {
-			if count > 1000 || tableExists {
+			if count > 1000 || exists {
 				break
 			}
 
-			tableExists, e = service.TableExists(client, datasetName, tableName)
-			if errExists != nil {
-				return table, e
+			exists, e = service.tableExists(dataset, tableHandle)
+			if e != nil {
+				return tableHandle, e
 			}
 
 			count++
 		}
 	}
 
-	return table, nil
+	if data != nil {
+		// insert data
+		e = service.Insert(tableHandle, *data)
+		if e != nil {
+			return nil, e
+		}
+	}
+
+	return tableHandle, nil
 }
 
-func (service *Service) DeleteTable(client *bigquery.Client, datasetName string, tableName string) *errortools.Error {
-	if client == nil {
-		_client, err := service.CreateClient()
-		if err != nil {
-			return err
-		}
-
-		client = _client
+func (service *Service) DeleteTable(sqlConfig *SQLConfig) *errortools.Error {
+	dataset, tableHandle, e := service.getTableHandle(sqlConfig)
+	if e != nil {
+		return e
 	}
 
-	dataset := client.Dataset(datasetName)
-
-	if dataset == nil {
-		return errortools.ErrorMessage(fmt.Sprintf("Dataset %s does not exist.", datasetName))
+	// check whether table exists
+	exists, e := service.tableExists(dataset, tableHandle)
+	if e != nil {
+		return e
 	}
 
-	table := dataset.Table(tableName)
-
-	if table == nil {
-		return errortools.ErrorMessage(fmt.Sprintf("Table %s does not exist in dataset %s.", tableName, datasetName))
+	if !exists {
+		return errortools.ErrorMessage(fmt.Sprintf("Table %s does not exist in dataset %s.", sqlConfig.TableOrViewName, sqlConfig.DatasetName))
 	}
 
-	err := table.Delete(context.Background())
+	err := tableHandle.Delete(context.Background())
 	if err != nil {
 		return errortools.ErrorMessage(err)
 	}
@@ -245,27 +262,10 @@ func (service *Service) DeleteTable(client *bigquery.Client, datasetName string,
 
 // Run is a generic function that runs the passed sql query in Service
 //
-func (service *Service) Run(client *bigquery.Client, sql string, pendingMessage string) *errortools.Error {
-	if client == nil {
-		_client, err := service.CreateClient()
-		if err != nil {
-			return err
-		}
+func (service *Service) Run(sql string, pendingMessage string) *errortools.Error {
+	q := service.bigQueryClient.Query(sql)
 
-		client = _client
-	}
-
-	e := service.isValid()
-	if e != nil {
-		return e
-	}
-
-	ctx := context.Background()
-	//fmt.Println(sql)
-
-	q := client.Query(sql)
-
-	job, err := q.Run(ctx)
+	job, err := q.Run(service.context)
 	if err != nil {
 		return errortools.ErrorMessage(err)
 	}
@@ -274,7 +274,7 @@ func (service *Service) Run(client *bigquery.Client, sql string, pendingMessage 
 	defer fmt.Printf("\n")
 
 	for {
-		status, err := job.Status(ctx)
+		status, err := job.Status(service.context)
 		if err != nil {
 			return errortools.ErrorMessage(err)
 		}
@@ -295,15 +295,6 @@ func (service *Service) Run(client *bigquery.Client, sql string, pendingMessage 
 // Insert : generic function to batchwise stream data to a Service table
 //
 func (service *Service) Insert(table *bigquery.Table, array []interface{}) *errortools.Error {
-	err := service.isValid()
-	if err != nil {
-		return err
-	}
-
-	ctx := context.Background()
-
-	//array := data.GetInterfaceArray()
-
 	ins := table.Inserter()
 
 	batchSize := 1000
@@ -322,7 +313,7 @@ func (service *Service) Insert(table *bigquery.Table, array []interface{}) *erro
 			batchSize = len
 		}
 
-		err := ins.Put(ctx, slice[:batchSize])
+		err := ins.Put(service.context, slice[:batchSize])
 		if err != nil {
 			return errortools.ErrorMessage(err)
 		}
@@ -334,24 +325,16 @@ func (service *Service) Insert(table *bigquery.Table, array []interface{}) *erro
 }
 
 // InsertSlice : generic function to batchwise stream array into Service table
-//
-func (service *Service) InsertSlice(datasetName string, slice []interface{}, model interface{}, tableName string) *errortools.Error {
-	err := service.isValid()
-	if err != nil {
-		return err
-	}
-
-	client, errClient := service.CreateClient()
-	if errClient != nil {
-		return errClient
-	}
+// REPLACED BY CreateTable(sqlConfig.Temptable(), slice, false)
+/*func (service *Service) InsertSlice(sqlConfig *SQLConfig, tempTable bool, slice []interface{}) *errortools.Error {
+	tableName := ""
 
 	if tableName == "" {
 		guid := types.NewGUID()
 		tableName = "temp_" + strings.Replace(guid.String(), "-", "", -1)
 	}
 
-	table, errTable := service.CreateTable(client, datasetName, tableName, model, false)
+	table, errTable := service.CreateTable(sqlConfig, false)
 	if errTable != nil {
 		return errTable
 	}
@@ -362,7 +345,7 @@ func (service *Service) InsertSlice(datasetName string, slice []interface{}, mod
 	}
 
 	return nil
-}
+}*/
 
 // Select returns RowIterator from arbitrary select_ query (was: Get)
 //
@@ -409,21 +392,9 @@ func (service *Service) SelectRaw(sql string) (*bigquery.RowIterator, *errortool
 // select_ returns RowIterator from arbitrary select_ query
 //
 func (service *Service) select_(sql string) (*bigquery.RowIterator, *errortools.Error) {
-	e := service.isValid()
-	if e != nil {
-		return nil, e
-	}
+	q := service.bigQueryClient.Query(sql)
 
-	client, e := service.CreateClient()
-	if e != nil {
-		return nil, e
-	}
-
-	ctx := context.Background()
-
-	q := client.Query(sql)
-
-	it, err := q.Read(ctx)
+	it, err := q.Read(service.context)
 	if err != nil {
 		return nil, errortools.ErrorMessage(err)
 	}
@@ -433,29 +404,44 @@ func (service *Service) select_(sql string) (*bigquery.RowIterator, *errortools.
 
 // Delete deletes rows from table
 //
-func (service *Service) Delete(datasetName string, tableName string, sqlWhere string) *errortools.Error {
-	//sqlWhere = strings.Trim(strings.ToLower(sqlWhere), " ")
+func (service *Service) Delete(sqlConfig *SQLConfig) *errortools.Error {
+	if sqlConfig == nil {
+		return errortools.ErrorMessage("sqlConfig is nil pointer")
+	}
 
-	if sqlWhere != "" {
+	if sqlConfig.TableOrViewName == nil {
+		return errortools.ErrorMessage("sqlConfig.TableOrViewName is nil pointer")
+	}
+
+	sqlWhere := ""
+	if sqlConfig.SQLWhere != nil {
+		sqlWhere = *sqlConfig.SQLWhere
 		if !strings.HasSuffix(sqlWhere, "where ") {
 			sqlWhere = "WHERE " + sqlWhere
 		}
 	}
 
-	sql := "DELETE FROM `" + datasetName + "." + tableName + "` " + sqlWhere
+	sql := "DELETE FROM `" + sqlConfig.DatasetName + "." + *sqlConfig.TableOrViewName + "` " + sqlWhere
 
 	//fmt.Println(sql)
 
-	return service.Run(nil, sql, "deleting")
+	return service.Run(sql, "deleting")
 }
 
 // Merge runs merge query in Service, schema contains the table schema which needs to match the Service table.
 // All properties of model with suffix 'Json' will be ignored. All rows with Ignore = TRUE will be ignored as well.
 //
-func (service *Service) Merge(schema interface{}, sourceTable string, targetTable string, idField string, hasIgnoreField bool) *errortools.Error {
+func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLConfig, idField string, hasIgnoreField bool) *errortools.Error {
+	if sqlConfigSource == nil {
+		return errortools.ErrorMessage("sqlConfigSource is nil pointer")
+	}
+	if sqlConfigTarget == nil {
+		return errortools.ErrorMessage("sqlConfigTarget is nil pointer")
+	}
+
 	var sqlUpdate, sqlInsert, sqlValues string = ``, ``, ``
 
-	v := reflect.ValueOf(schema)
+	v := reflect.ValueOf(sqlConfigTarget.ModelOrSchema)
 	vType := v.Type()
 
 	for i := 0; i < v.NumField(); i++ {
@@ -477,8 +463,8 @@ func (service *Service) Merge(schema interface{}, sourceTable string, targetTabl
 		}
 	}
 
-	sql := "MERGE `" + targetTable + "` AS TARGET"
-	sql += " USING `" + sourceTable + "` AS SOURCE"
+	sql := "MERGE `" + sqlConfigTarget.FullTableName() + "` AS TARGET"
+	sql += " USING `" + sqlConfigSource.FullTableName() + "` AS SOURCE"
 	sql += " ON TARGET." + idField + " = SOURCE." + idField
 	sql += " WHEN MATCHED"
 	if hasIgnoreField {
@@ -491,7 +477,7 @@ func (service *Service) Merge(schema interface{}, sourceTable string, targetTabl
 	}
 	sql += " THEN INSERT(" + sqlInsert + ") VALUES(" + sqlValues + ")"
 
-	return service.Run(nil, sql, "merging")
+	return service.Run(sql, "merging")
 }
 
 // GetValue returns one single value from query
@@ -591,20 +577,30 @@ func (service *Service) GetStruct(selectConfig *SelectConfig, model interface{})
 
 // CopyObjectToTable copies content of GCS object to table
 //
-func (service *Service) CopyObjectToTable(obj *storage.ObjectHandle, datasetName string, tableName string, schema interface{}, ctx context.Context, truncateTable bool, deleteObject bool) *errortools.Error {
-	client, e := service.CreateClient()
-	if e != nil {
-		return e
+type CopyObjectToTableConfig struct {
+	ObjectHandle  *storage.ObjectHandle
+	SQLConfig     *SQLConfig
+	TruncateTable bool
+	DeleteObject  bool
+}
+
+func (service *Service) CopyObjectToTable(config *CopyObjectToTableConfig) *errortools.Error {
+	if config == nil {
+		return errortools.ErrorMessage("CopyObjectToTableConfig is nil pointer")
+	}
+
+	if config.SQLConfig == nil {
+		return errortools.ErrorMessage("SQLConfig is nil pointer")
 	}
 
 	//if rowCount > 0 {
 	// get GCSReference
-	gcsRef := bigquery.NewGCSReference(fmt.Sprintf("gs://%s/%s", obj.BucketName(), obj.ObjectName()))
+	gcsRef := bigquery.NewGCSReference(fmt.Sprintf("gs://%s/%s", config.ObjectHandle.BucketName(), config.ObjectHandle.ObjectName()))
 
 	// set FileConfig attribute of GCSReference struct
 	var dataFormat bigquery.DataFormat
 	dataFormat = "NEWLINE_DELIMITED_JSON"
-	schema1, err := bigquery.InferSchema(schema)
+	schema1, err := bigquery.InferSchema(config.SQLConfig.ModelOrSchema)
 	if err != nil {
 		return errortools.ErrorMessage(err)
 	}
@@ -613,15 +609,20 @@ func (service *Service) CopyObjectToTable(obj *storage.ObjectHandle, datasetName
 	gcsRef.FileConfig = flConfig
 
 	// load data from GCN object to Service
-	loader := client.Dataset(datasetName).Table(tableName).LoaderFrom(gcsRef)
+	_, tableHandle, e := service.getTableHandle(config.SQLConfig)
+	if e != nil {
+		return e
+	}
+
+	loader := tableHandle.LoaderFrom(gcsRef)
 	loader.CreateDisposition = bigquery.CreateIfNeeded
 	tableWriteDisposition := bigquery.WriteAppend
-	if truncateTable {
+	if config.TruncateTable {
 		tableWriteDisposition = bigquery.WriteTruncate
 	}
 	loader.WriteDisposition = tableWriteDisposition
 
-	job, err := loader.Run(ctx)
+	job, err := loader.Run(service.context)
 	if err != nil {
 		return errortools.ErrorMessage(err)
 	}
@@ -630,7 +631,7 @@ func (service *Service) CopyObjectToTable(obj *storage.ObjectHandle, datasetName
 	pollInterval := 5 * time.Second
 
 	for {
-		status, err := job.Status(ctx)
+		status, err := job.Status(service.context)
 		if err != nil {
 			return errortools.ErrorMessage(err)
 		}
@@ -649,9 +650,9 @@ func (service *Service) CopyObjectToTable(obj *storage.ObjectHandle, datasetName
 	}
 	//}
 
-	if deleteObject {
+	if config.DeleteObject {
 		// delete GCS object
-		err = obj.Delete(ctx)
+		err = config.ObjectHandle.Delete(service.context)
 		if err != nil {
 			return errortools.ErrorMessage(err)
 		}
