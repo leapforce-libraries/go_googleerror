@@ -21,13 +21,14 @@ import (
 )
 
 type SQLConfig struct {
-	DatasetName     string
-	TableOrViewName *string
-	SQLSelect       *string
-	SQLWhere        *string
-	SQLOrderBy      *string
-	SQLLimit        *uint64
-	ModelOrSchema   interface{}
+	DatasetName      string
+	TableOrViewName  *string
+	TableOrViewAlias *string
+	SQLSelect        *string
+	SQLWhere         *string
+	SQLOrderBy       *string
+	SQLLimit         *uint64
+	ModelOrSchema    interface{}
 }
 
 func (sqlConfig SQLConfig) GenerateTempTable() SQLConfig {
@@ -349,35 +350,44 @@ func (service *Service) Insert(table *bigquery.Table, array []interface{}) *erro
 
 // Select returns RowIterator from arbitrary select_ query (was: Get)
 //
-func (service *Service) Select(selectConfig *SelectConfig) (*bigquery.RowIterator, *errortools.Error) {
-	sqlSelect := selectConfig.SQLSelect
-	if sqlSelect == "" {
-		sqlSelect = "*"
+func (service *Service) Select(sqlConfig *SQLConfig) (*bigquery.RowIterator, *errortools.Error) {
+	if sqlConfig.TableOrViewName == nil {
+		return nil, errortools.ErrorMessage("TableOrViewName is nil pointer")
 	}
 
-	sqlWhere := selectConfig.SQLWhere
-	if sqlWhere != "" {
-		if !strings.HasSuffix(strings.ToUpper(sqlWhere), "WHERE ") {
-			sqlWhere = "WHERE " + sqlWhere
+	_sqlSelect := "*"
+	if sqlConfig.SQLSelect != nil {
+		_sqlSelect = *sqlConfig.SQLSelect
+	}
+
+	_sqlAlias := ""
+	if sqlConfig.TableOrViewAlias != nil {
+		_sqlAlias = fmt.Sprintf("%s ", *sqlConfig.TableOrViewAlias)
+	}
+
+	_sqlWhere := ""
+	if sqlConfig.SQLWhere != nil {
+		if !strings.HasSuffix(strings.ToUpper(*sqlConfig.SQLWhere), "WHERE ") {
+			_sqlWhere = fmt.Sprintf("WHERE %s", *sqlConfig.SQLWhere)
 		}
 	}
 
-	sqlOrderBy := ""
-	if selectConfig.SQLOrderBy != nil {
-		sqlOrderBy = *selectConfig.SQLOrderBy
+	_sqlOrderBy := ""
+	if sqlConfig.SQLOrderBy != nil {
+		_sqlOrderBy = *sqlConfig.SQLOrderBy
 	}
-	if sqlOrderBy != "" {
-		if !strings.HasSuffix(strings.ToUpper(sqlOrderBy), "ORDER BY ") {
-			sqlOrderBy = "ORDER BY " + sqlOrderBy
+	if _sqlOrderBy != "" {
+		if !strings.HasSuffix(strings.ToUpper(_sqlOrderBy), "ORDER BY ") {
+			_sqlOrderBy = fmt.Sprintf("ORDER BY %s", _sqlOrderBy)
 		}
 	}
 
-	sqlLimit := ""
-	if selectConfig.SQLLimit != nil {
-		sqlLimit = fmt.Sprintf("LIMIT %v", *selectConfig.SQLLimit)
+	_sqlLimit := ""
+	if sqlConfig.SQLLimit != nil {
+		_sqlLimit = fmt.Sprintf("LIMIT %v", *sqlConfig.SQLLimit)
 	}
 
-	sql := "SELECT " + sqlSelect + " FROM `" + selectConfig.DatasetName + "." + selectConfig.TableOrViewName + "` " + sqlWhere + " " + sqlOrderBy + " " + sqlLimit
+	sql := "SELECT " + _sqlSelect + " FROM `" + sqlConfig.DatasetName + "." + *sqlConfig.TableOrViewName + "` " + _sqlAlias + " " + _sqlWhere + " " + _sqlOrderBy + " " + _sqlLimit
 	//fmt.Println(sql)
 
 	return service.select_(sql)
@@ -482,8 +492,8 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 
 // GetValue returns one single value from query
 //
-func (service *Service) GetValue(selectConfig *SelectConfig) (string, *errortools.Error) {
-	it, err := service.Select(selectConfig)
+func (service *Service) GetValue(sqlConfig *SQLConfig) (string, *errortools.Error) {
+	it, err := service.Select(sqlConfig)
 	if err != nil {
 		return "", err
 	}
@@ -511,8 +521,8 @@ func (service *Service) GetValue(selectConfig *SelectConfig) (string, *errortool
 
 // GetValues returns multiple values from query
 //
-func (service *Service) GetValues(selectConfig *SelectConfig) (*[]string, *errortools.Error) {
-	it, err := service.Select(selectConfig)
+func (service *Service) GetValues(sqlConfig *SQLConfig) (*[]string, *errortools.Error) {
+	it, err := service.Select(sqlConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -538,24 +548,14 @@ func (service *Service) GetValues(selectConfig *SelectConfig) (*[]string, *error
 	return &values_, nil
 }
 
-type SelectConfig struct {
-	DatasetName     string
-	TableOrViewName string
-	SQLSelect       string
-	SQLWhere        string
-	SQLOrderBy      *string
-	SQLLimit        *uint64
-	Model           interface{}
-}
-
 // GetStruct returns struct from query
 //
-func (service *Service) GetStruct(selectConfig *SelectConfig, model interface{}) (uint64, *errortools.Error) {
-	if selectConfig == nil {
-		return 0, errortools.ErrorMessage("SelectConfig must be a non-nil pointer")
+func (service *Service) GetStruct(sqlConfig *SQLConfig, model interface{}) (uint64, *errortools.Error) {
+	if sqlConfig == nil {
+		return 0, errortools.ErrorMessage("SQLConfig must be a non-nil pointer")
 	}
 
-	it, e := service.Select(selectConfig)
+	it, e := service.Select(sqlConfig)
 	if e != nil {
 		return 0, e
 	}
