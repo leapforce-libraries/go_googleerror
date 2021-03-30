@@ -24,14 +24,15 @@ func GetToken(apiName string, clientID string, service *go_bigquery.Service) (*o
 
 	token := new(Token)
 
-	selectConfig := go_bigquery.SelectConfig{
+	tableName := TableRefreshToken
+	sqlConfig := go_bigquery.SQLConfig{
 		DatasetName:     "",
-		TableOrViewName: TableRefreshToken,
-		SQLSelect:       sqlSelect,
-		SQLWhere:        sqlWhere,
+		TableOrViewName: &tableName,
+		SQLSelect:       &sqlSelect,
+		SQLWhere:        &sqlWhere,
 	}
 
-	_, e := service.GetStruct(&selectConfig, token)
+	_, e := service.GetStruct(&sqlConfig, token)
 	if e != nil {
 		return nil, e
 	}
@@ -115,5 +116,5 @@ func SaveToken(apiName string, clientID string, token *oauth2.Token, service *go
 		"	INSERT (Api, ClientID, TokenType, AccessToken, RefreshToken, Expiry, Scope) " +
 		"	VALUES (SOURCE.Api, SOURCE.ClientID, SOURCE.TokenType, SOURCE.AccessToken, SOURCE.RefreshToken, SOURCE.Expiry, SOURCE.Scope)"
 
-	return service.Run(nil, sql, "saving token")
+	return service.Run(sql, "saving token")
 }
