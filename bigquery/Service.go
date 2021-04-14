@@ -441,12 +441,15 @@ func (service *Service) Delete(sqlConfig *SQLConfig) *errortools.Error {
 // Merge runs merge query in Service, schema contains the table schema which needs to match the Service table.
 // All properties of model with suffix 'Json' will be ignored. All rows with Ignore = TRUE will be ignored as well.
 //
-func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLConfig, idField string, hasIgnoreField bool) *errortools.Error {
+func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLConfig, joinFields []string, hasIgnoreField bool) *errortools.Error {
 	if sqlConfigSource == nil {
 		return errortools.ErrorMessage("sqlConfigSource is nil pointer")
 	}
 	if sqlConfigTarget == nil {
 		return errortools.ErrorMessage("sqlConfigTarget is nil pointer")
+	}
+	if len(joinFields) == 0 {
+		return errortools.ErrorMessage("Specify at least one join field")
 	}
 
 	var sqlUpdate, sqlInsert, sqlValues string = ``, ``, ``
@@ -459,7 +462,6 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 
 		if !strings.HasSuffix(fieldName, "Json") && fieldName != "Ignore" {
 			// fieldNames ending with "Json" should not be imported
-
 			fieldName = "`" + fieldName + "`"
 
 			if i > 0 {
@@ -473,9 +475,14 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 		}
 	}
 
+	var sqlOn []string
+	for _, joinField := range joinFields {
+		sqlOn = append(sqlOn, fmt.Sprintf("TARGET.%s = SOURCE.%s", joinField, joinField))
+	}
+
 	sql := "MERGE `" + sqlConfigTarget.FullTableName() + "` AS TARGET"
 	sql += " USING `" + sqlConfigSource.FullTableName() + "` AS SOURCE"
-	sql += " ON TARGET." + idField + " = SOURCE." + idField
+	sql += " ON " + strings.Join(sqlOn, " AND ")
 	sql += " WHEN MATCHED"
 	if hasIgnoreField {
 		sql += " AND SOURCE.Ignore IS FALSE"
