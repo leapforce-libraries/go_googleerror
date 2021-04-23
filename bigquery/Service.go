@@ -250,7 +250,7 @@ func (service *Service) DeleteTable(sqlConfig *SQLConfig) *errortools.Error {
 	}
 
 	if !exists {
-		return errortools.ErrorMessage(fmt.Sprintf("Table %s does not exist in dataset %s.", sqlConfig.TableOrViewName, sqlConfig.DatasetName))
+		return errortools.ErrorMessage(fmt.Sprintf("Table %s does not exist in dataset %s.", *sqlConfig.TableOrViewName, sqlConfig.DatasetName))
 	}
 
 	err := tableHandle.Delete(context.Background())
@@ -499,60 +499,39 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 
 // GetValue returns one single value from query
 //
-func (service *Service) GetValue(sqlConfig *SQLConfig) (string, *errortools.Error) {
-	it, err := service.Select(sqlConfig)
-	if err != nil {
-		return "", err
+func (service *Service) GetValue(sqlConfig *SQLConfig) (*bigquery.Value, *errortools.Error) {
+	values, e := service.GetValues(sqlConfig)
+	if e != nil {
+		return nil, e
 	}
 
-	for {
-		var values []bigquery.Value
-		err := it.Next(&values)
-		if err == iterator.Done {
-			//return "", nil
-			break
-		}
-		if err != nil {
-			return "", errortools.ErrorMessage(err)
-		}
-
-		if values[0] == nil {
-			return "", nil
-		} else {
-			return fmt.Sprintf("%s", values[0]), nil
-		}
+	if len(*values) != 1 {
+		return nil, errortools.ErrorMessagef("Row has %v columns instead of 1", len(*values))
 	}
 
-	return "", nil
+	return &(*values)[0], nil
 }
 
 // GetValues returns multiple values from query
 //
-func (service *Service) GetValues(sqlConfig *SQLConfig) (*[]string, *errortools.Error) {
-	it, err := service.Select(sqlConfig)
+func (service *Service) GetValues(sqlConfig *SQLConfig) (*[]bigquery.Value, *errortools.Error) {
+	it, e := service.Select(sqlConfig)
+	if e != nil {
+		return nil, e
+	}
+
+	values := []bigquery.Value{}
+
+	err := it.Next(&values)
 	if err != nil {
-		return nil, err
+		return nil, errortools.ErrorMessage(err)
 	}
 
-	values_ := []string{}
-
-	for {
-		var values []bigquery.Value
-		err := it.Next(&values)
-		if err == iterator.Done {
-			//return nil, nil
-			break
-		}
-		if err != nil {
-			return nil, errortools.ErrorMessage(err)
-		}
-
-		for _, value := range values {
-			values_ = append(values_, fmt.Sprintf("%v", value))
-		}
+	if it.TotalRows != 1 {
+		return nil, errortools.ErrorMessagef("Query returned %v rows instead of 1", it.TotalRows)
 	}
 
-	return &values_, nil
+	return &values, nil
 }
 
 // GetStruct returns struct from query
@@ -582,8 +561,6 @@ func (service *Service) GetStruct(sqlConfig *SQLConfig, model interface{}) (uint
 	return it.TotalRows, nil
 }
 
-// CopyObjectToTable copies content of GCS object to table
-//
 type CopyObjectToTableConfig struct {
 	ObjectHandle  *storage.ObjectHandle
 	SQLConfig     *SQLConfig
@@ -591,6 +568,8 @@ type CopyObjectToTableConfig struct {
 	DeleteObject  bool
 }
 
+// CopyObjectToTable copies content of GCS object to table
+//
 func (service *Service) CopyObjectToTable(config *CopyObjectToTableConfig) *errortools.Error {
 	if config == nil {
 		return errortools.ErrorMessage("CopyObjectToTableConfig is nil pointer")

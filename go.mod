@@ -3,12 +3,10 @@ module github.com/leapforce-libraries/go_google
 go 1.15
 
 require (
-	cloud.google.com/go v0.80.0
-	cloud.google.com/go/bigquery v1.16.0
-	cloud.google.com/go/storage v1.14.0
-	github.com/leapforce-libraries/go_errortools v0.0.0-20210305222651-2350bce9f587
-	github.com/leapforce-libraries/go_http v0.0.0-20210326105232-ecf506e03a53
-	github.com/leapforce-libraries/go_oauth2 v0.0.0-20210331163212-54b4c2c31f67
-	github.com/leapforce-libraries/go_types v0.0.0-20210327214904-e5e83ce3293d
-	google.golang.org/api v0.42.0
+	cloud.google.com/go v0.81.0
+	cloud.google.com/go/bigquery v1.17.0
+	cloud.google.com/go/storage v1.15.0
+	github.com/leapforce-libraries/go_errortools v0.0.0-20210421105612-afc8a27266b6
+	github.com/leapforce-libraries/go_types v0.0.0-20210415100703-687744db463d
+	google.golang.org/api v0.45.0
 )
