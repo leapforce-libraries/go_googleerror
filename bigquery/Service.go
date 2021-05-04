@@ -811,3 +811,52 @@ func BoolToNullBool(b *bool) bigquery.NullBool {
 
 	return bb
 }
+
+// XML
+func NullStringToXML(i bigquery.NullString) string {
+	if i.Valid {
+		return i.StringVal
+	} else {
+		return ""
+	}
+}
+
+func NullInt64ToXML(i bigquery.NullInt64) string {
+	if i.Valid {
+		return fmt.Sprintf("%v", i.Int64)
+	} else {
+		return ""
+	}
+}
+
+func NullFloat64ToXML(i bigquery.NullFloat64) string {
+	if i.Valid {
+		return fmt.Sprintf("%v", i.Float64)
+	} else {
+		return ""
+	}
+}
+
+func NullBoolToXML(i bigquery.NullBool) string {
+	if i.Valid {
+		return fmt.Sprintf("%v", i.Bool)
+	} else {
+		return ""
+	}
+}
+
+func NullTimestampToXML(i bigquery.NullTimestamp, layout string) string {
+	if i.Valid {
+		return i.Timestamp.Format(layout)
+	} else {
+		return ""
+	}
+}
+
+func TimeToXML(i time.Time, layout string) string {
+	if !i.IsZero() {
+		return i.Format(layout)
+	} else {
+		return ""
+	}
+}
