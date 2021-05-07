@@ -24,7 +24,7 @@ func GetToken(apiName string, clientID string, service *go_bigquery.Service) (*o
 
 	token := new(Token)
 
-	tableName := TableRefreshToken
+	tableName := tableRefreshToken
 	sqlConfig := go_bigquery.SQLConfig{
 		DatasetName:     "",
 		TableOrViewName: &tableName,
@@ -99,7 +99,7 @@ func SaveToken(apiName string, clientID string, token *oauth2.Token, service *go
 		}
 	}
 
-	sql := "MERGE `" + TableRefreshToken + "` AS TARGET " +
+	sql := "MERGE `" + tableRefreshToken + "` AS TARGET " +
 		"USING  (SELECT '" +
 		apiName + "' AS Api,'" +
 		clientID + "' AS ClientID," +

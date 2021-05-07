@@ -12,7 +12,7 @@ import (
 // Service stores GoogleService configuration
 //
 type Service struct {
-	oAuth2 *oauth2.OAuth2
+	oAuth2Service *oauth2.Service
 }
 
 type ServiceConfig struct {
@@ -20,19 +20,24 @@ type ServiceConfig struct {
 	ClientID     string
 	ClientSecret string
 	Scope        string
+	RedirectURL  *string
 }
 
 const (
-	AuthURL           string = "https://accounts.google.com/o/oauth2/v2/auth"
-	TokenURL          string = "https://oauth2.googleapis.com/token"
-	TokenHTTPMethod   string = http.MethodPost
-	RedirectURL       string = "http://localhost:8080/oauth/redirect"
-	TableRefreshToken string = "leapforce.oauth2"
+	authURL            string = "https://accounts.google.com/o/oauth2/v2/auth"
+	tokenURL           string = "https://oauth2.googleapis.com/token"
+	tokenHTTPMethod    string = http.MethodPost
+	defaultRedirectURL string = "http://localhost:8080/oauth/redirect"
+	tableRefreshToken  string = "leapforce.oauth2"
 )
 
 // methods
 //
-func NewService(serviceConfig ServiceConfig, bigQueryService *bigquery.Service) *Service {
+func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service) (*Service, *errortools.Error) {
+	if serviceConfig == nil {
+		return nil, errortools.ErrorMessage("ServiceConfig must not be a nil pointer")
+	}
+
 	getTokenFunction := func() (*oauth2.Token, *errortools.Error) {
 		return GetToken(serviceConfig.APIName, serviceConfig.ClientID, bigQueryService)
 	}
@@ -41,56 +46,66 @@ func NewService(serviceConfig ServiceConfig, bigQueryService *bigquery.Service) 
 		return SaveToken(serviceConfig.APIName, serviceConfig.ClientID, token, bigQueryService)
 	}
 
-	oauht2Config := oauth2.OAuth2Config{
+	redirectURL := defaultRedirectURL
+	if serviceConfig.RedirectURL != nil {
+		redirectURL = *serviceConfig.RedirectURL
+	}
+
+	oauth2ServiceConfig := oauth2.ServiceConfig{
 		ClientID:          serviceConfig.ClientID,
 		ClientSecret:      serviceConfig.ClientSecret,
 		Scope:             serviceConfig.Scope,
-		RedirectURL:       RedirectURL,
-		AuthURL:           AuthURL,
-		TokenURL:          TokenURL,
-		TokenHTTPMethod:   TokenHTTPMethod,
+		RedirectURL:       redirectURL,
+		AuthURL:           authURL,
+		TokenURL:          tokenURL,
+		TokenHTTPMethod:   tokenHTTPMethod,
 		GetTokenFunction:  &getTokenFunction,
 		SaveTokenFunction: &saveTokenFunction,
 	}
-	return &Service{oauth2.NewOAuth(oauht2Config)}
+	oauth2Service, e := oauth2.NewService(&oauth2ServiceConfig)
+	if e != nil {
+		return nil, e
+	}
+
+	return &Service{oauth2Service}, nil
 }
 
 func (service *Service) InitToken() *errortools.Error {
-	return service.oAuth2.InitToken()
+	return service.oAuth2Service.InitToken()
 }
 
 func (service *Service) Get(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	requestConfig.ErrorModel = &err
-	request, response, e := service.oAuth2.Get(requestConfig)
+	request, response, e := service.oAuth2Service.Get(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
 func (service *Service) Post(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	requestConfig.ErrorModel = &err
-	request, response, e := service.oAuth2.Post(requestConfig)
+	request, response, e := service.oAuth2Service.Post(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
 func (service *Service) Put(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	requestConfig.ErrorModel = &err
-	request, response, e := service.oAuth2.Put(requestConfig)
+	request, response, e := service.oAuth2Service.Put(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
 func (service *Service) Patch(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	requestConfig.ErrorModel = &err
-	request, response, e := service.oAuth2.Patch(requestConfig)
+	request, response, e := service.oAuth2Service.Patch(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
 func (service *Service) Delete(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	requestConfig.ErrorModel = &err
-	request, response, e := service.oAuth2.Delete(requestConfig)
+	request, response, e := service.oAuth2Service.Delete(requestConfig)
 	return request, response, service.captureError(e, &err)
 }
 
@@ -107,5 +122,17 @@ func (service *Service) captureError(e *errortools.Error, err *ErrorResponse) *e
 }
 
 func (service *Service) ValidateToken() (*oauth2.Token, *errortools.Error) {
-	return service.oAuth2.ValidateToken()
+	return service.oAuth2Service.ValidateToken()
+}
+
+func (service *Service) AuthorizeURL() string {
+	return service.oAuth2Service.AuthorizeURL()
+}
+
+func (service *Service) GetAccessTokenFromCode(r *http.Request) *errortools.Error {
+	return service.oAuth2Service.GetAccessTokenFromCode(r)
+}
+
+func (service *Service) APICallCount() int64 {
+	return service.oAuth2Service.APICallCount()
 }
