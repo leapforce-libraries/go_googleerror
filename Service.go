@@ -12,6 +12,8 @@ import (
 // Service stores GoogleService configuration
 //
 type Service struct {
+	apiName       string
+	clientID      string
 	oAuth2Service *oauth2.Service
 }
 
@@ -67,7 +69,11 @@ func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service)
 		return nil, e
 	}
 
-	return &Service{oauth2Service}, nil
+	return &Service{
+		apiName:       serviceConfig.APIName,
+		clientID:      serviceConfig.ClientID,
+		oAuth2Service: oauth2Service,
+	}, nil
 }
 
 func (service *Service) InitToken() *errortools.Error {
@@ -133,6 +139,18 @@ func (service *Service) GetAccessTokenFromCode(r *http.Request) *errortools.Erro
 	return service.oAuth2Service.GetAccessTokenFromCode(r)
 }
 
+func (service *Service) APIName() string {
+	return service.apiName
+}
+
+func (service *Service) APIKey() string {
+	return service.clientID
+}
+
 func (service *Service) APICallCount() int64 {
 	return service.oAuth2Service.APICallCount()
+}
+
+func (service *Service) APIReset() {
+	service.oAuth2Service.APIReset()
 }
