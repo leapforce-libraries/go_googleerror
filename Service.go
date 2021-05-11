@@ -21,7 +21,6 @@ type ServiceConfig struct {
 	APIName      string
 	ClientID     string
 	ClientSecret string
-	Scope        string
 	RedirectURL  *string
 }
 
@@ -56,7 +55,6 @@ func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service)
 	oauth2ServiceConfig := oauth2.ServiceConfig{
 		ClientID:          serviceConfig.ClientID,
 		ClientSecret:      serviceConfig.ClientSecret,
-		Scope:             serviceConfig.Scope,
 		RedirectURL:       redirectURL,
 		AuthURL:           authURL,
 		TokenURL:          tokenURL,
@@ -76,8 +74,8 @@ func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service)
 	}, nil
 }
 
-func (service *Service) InitToken() *errortools.Error {
-	return service.oAuth2Service.InitToken()
+func (service *Service) InitToken(scope string) *errortools.Error {
+	return service.oAuth2Service.InitToken(scope)
 }
 
 func (service *Service) Get(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
@@ -131,8 +129,8 @@ func (service *Service) ValidateToken() (*oauth2.Token, *errortools.Error) {
 	return service.oAuth2Service.ValidateToken()
 }
 
-func (service *Service) AuthorizeURL() string {
-	return service.oAuth2Service.AuthorizeURL()
+func (service *Service) AuthorizeURL(scope string) string {
+	return service.oAuth2Service.AuthorizeURL(scope)
 }
 
 func (service *Service) GetAccessTokenFromCode(r *http.Request) *errortools.Error {
