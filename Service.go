@@ -18,10 +18,12 @@ type Service struct {
 }
 
 type ServiceConfig struct {
-	APIName      string
-	ClientID     string
-	ClientSecret string
-	RedirectURL  *string
+	APIName           string
+	ClientID          string
+	ClientSecret      string
+	RedirectURL       *string
+	GetTokenFunction  *func() (*oauth2.Token, *errortools.Error)
+	SaveTokenFunction *func(token *oauth2.Token) *errortools.Error
 }
 
 const (
@@ -42,9 +44,15 @@ func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service)
 	getTokenFunction := func() (*oauth2.Token, *errortools.Error) {
 		return GetToken(serviceConfig.APIName, serviceConfig.ClientID, bigQueryService)
 	}
+	if serviceConfig.GetTokenFunction != nil {
+		getTokenFunction = *serviceConfig.GetTokenFunction
+	}
 
 	saveTokenFunction := func(token *oauth2.Token) *errortools.Error {
 		return SaveToken(serviceConfig.APIName, serviceConfig.ClientID, token, bigQueryService)
+	}
+	if serviceConfig.SaveTokenFunction != nil {
+		saveTokenFunction = *serviceConfig.SaveTokenFunction
 	}
 
 	redirectURL := defaultRedirectURL
