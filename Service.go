@@ -78,6 +78,14 @@ func (service *Service) InitToken(scope string) *errortools.Error {
 	return service.oAuth2Service.InitToken(scope)
 }
 
+func (service *Service) GetToken() *oauth2.Token {
+	return service.oAuth2Service.GetToken()
+}
+
+func (service *Service) SetToken(token *oauth2.Token) {
+	service.oAuth2Service.SetToken(token)
+}
+
 func (service *Service) Get(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	requestConfig.ErrorModel = &err
