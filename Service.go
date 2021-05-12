@@ -95,50 +95,38 @@ func (service *Service) SetToken(token *oauth2.Token) {
 }
 
 func (service *Service) Get(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	err := ErrorResponse{}
-	requestConfig.ErrorModel = &err
-	request, response, e := service.oAuth2Service.Get(requestConfig)
-	return request, response, service.captureError(e, &err)
+	return service.HTTPService(http.MethodGet, requestConfig)
 }
 
 func (service *Service) Post(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	err := ErrorResponse{}
-	requestConfig.ErrorModel = &err
-	request, response, e := service.oAuth2Service.Post(requestConfig)
-	return request, response, service.captureError(e, &err)
+	return service.HTTPService(http.MethodPost, requestConfig)
 }
 
 func (service *Service) Put(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	err := ErrorResponse{}
-	requestConfig.ErrorModel = &err
-	request, response, e := service.oAuth2Service.Put(requestConfig)
-	return request, response, service.captureError(e, &err)
+	return service.HTTPService(http.MethodPut, requestConfig)
 }
 
 func (service *Service) Patch(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	err := ErrorResponse{}
-	requestConfig.ErrorModel = &err
-	request, response, e := service.oAuth2Service.Patch(requestConfig)
-	return request, response, service.captureError(e, &err)
+	return service.HTTPService(http.MethodPatch, requestConfig)
 }
 
 func (service *Service) Delete(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	err := ErrorResponse{}
-	requestConfig.ErrorModel = &err
-	request, response, e := service.oAuth2Service.Delete(requestConfig)
-	return request, response, service.captureError(e, &err)
+	return service.HTTPService(http.MethodDelete, requestConfig)
 }
 
-func (service *Service) captureError(e *errortools.Error, err *ErrorResponse) *errortools.Error {
-	if e == nil || err == nil {
-		return nil
+func (service *Service) HTTPService(httpMethod string, requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
+	err := ErrorResponse{}
+	requestConfig.ErrorModel = &err
+
+	request, response, e := service.oAuth2Service.HTTPRequest(httpMethod, requestConfig, false)
+
+	if e != nil {
+		if err.Error.Message != "" {
+			e.SetMessage(err.Error.Message)
+		}
 	}
 
-	if err.Error.Message != "" {
-		e.SetMessage(err.Error.Message)
-	}
-
-	return e
+	return request, response, e
 }
 
 func (service *Service) ValidateToken() (*oauth2.Token, *errortools.Error) {
