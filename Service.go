@@ -95,23 +95,23 @@ func (service *Service) SetToken(token *oauth2.Token) {
 }
 
 func (service *Service) Get(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	return service.HTTPService(http.MethodGet, requestConfig)
+	return service.HTTPRequest(http.MethodGet, requestConfig)
 }
 
 func (service *Service) Post(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	return service.HTTPService(http.MethodPost, requestConfig)
+	return service.HTTPRequest(http.MethodPost, requestConfig)
 }
 
 func (service *Service) Put(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	return service.HTTPService(http.MethodPut, requestConfig)
+	return service.HTTPRequest(http.MethodPut, requestConfig)
 }
 
 func (service *Service) Patch(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	return service.HTTPService(http.MethodPatch, requestConfig)
+	return service.HTTPRequest(http.MethodPatch, requestConfig)
 }
 
 func (service *Service) Delete(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	return service.HTTPService(http.MethodDelete, requestConfig)
+	return service.HTTPRequest(http.MethodDelete, requestConfig)
 }
 
 func (service *Service) HTTPRequest(httpMethod string, requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
