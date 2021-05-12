@@ -114,7 +114,7 @@ func (service *Service) Delete(requestConfig *go_http.RequestConfig) (*http.Requ
 	return service.HTTPService(http.MethodDelete, requestConfig)
 }
 
-func (service *Service) HTTPService(httpMethod string, requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
+func (service *Service) HTTPRequest(httpMethod string, requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	requestConfig.ErrorModel = &err
 
