@@ -7,8 +7,8 @@ require (
 	cloud.google.com/go/bigquery v1.18.0
 	cloud.google.com/go/storage v1.15.0
 	github.com/leapforce-libraries/go_errortools v0.0.0-20210421105612-afc8a27266b6
-	github.com/leapforce-libraries/go_http v0.0.0-20210511205520-b027dff433b9
-	github.com/leapforce-libraries/go_oauth2 v0.0.0-20210511205549-173bde1db0ec
+	github.com/leapforce-libraries/go_http v0.0.0-20210519135226-98001b7ce271
+	github.com/leapforce-libraries/go_oauth2 v0.0.0-20210519202835-eb45207df19e
 	github.com/leapforce-libraries/go_types v0.0.0-20210415100703-687744db463d
-	google.golang.org/api v0.46.0
+	google.golang.org/api v0.47.0
 )
