@@ -412,6 +412,21 @@ func (service *Service) select_(sql string) (*bigquery.RowIterator, *errortools.
 	return it, nil
 }
 
+// Exists returns whether any arbitrary query returns any rows
+//
+func (service *Service) Exists(sqlConfig *SQLConfig) (bool, *errortools.Error) {
+	it, e := service.Select(sqlConfig)
+	if e != nil {
+		return false, e
+	}
+
+	if it.TotalRows == 0 {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 // Delete deletes rows from table
 //
 func (service *Service) Delete(sqlConfig *SQLConfig) *errortools.Error {
