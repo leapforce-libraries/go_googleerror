@@ -420,7 +420,7 @@ func (service *Service) Exists(sqlConfig *SQLConfig) (bool, *errortools.Error) {
 		return false, e
 	}
 
-	_ = it.Next(&[]bigquery.Value{})
+	_ = it.Next(&[]bigquery.Value{}) //first call to Next needed to make TotalRows work
 
 	if it.TotalRows == 0 {
 		return false, nil
