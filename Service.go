@@ -82,8 +82,8 @@ func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service)
 	}, nil
 }
 
-func (service *Service) InitToken(scope string) *errortools.Error {
-	return service.oAuth2Service.InitToken(scope)
+func (service *Service) InitToken(scope string, accessType *string, prompt *string, state *string) *errortools.Error {
+	return service.oAuth2Service.InitToken(scope, accessType, prompt, state)
 }
 
 func (service *Service) GetToken() *oauth2.Token {
@@ -133,8 +133,8 @@ func (service *Service) ValidateToken() (*oauth2.Token, *errortools.Error) {
 	return service.oAuth2Service.ValidateToken()
 }
 
-func (service *Service) AuthorizeURL(scope string) string {
-	return service.oAuth2Service.AuthorizeURL(scope)
+func (service *Service) AuthorizeURL(scope string, accessType *string, prompt *string, state *string) string {
+	return service.oAuth2Service.AuthorizeURL(scope, accessType, prompt, state)
 }
 
 func (service *Service) GetAccessTokenFromCode(r *http.Request) *errortools.Error {
