@@ -479,7 +479,7 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 
 		if !strings.HasSuffix(fieldName, "Json") && fieldName != "Ignore" {
 			// fieldNames ending with "Json" should not be imported
-			fieldName = "`" + fieldName + "`"
+			_fieldName := "`" + fieldName + "`"
 
 			if i > 0 {
 				sqlUpdate += ","
@@ -487,10 +487,10 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 				sqlValues += ","
 			}
 			if !strings.Contains(fmt.Sprintf(";%s;", strings.ToLower(strings.Join(doNotUpdateFields, ";"))), fmt.Sprintf(";%s;", strings.ToLower(fieldName))) {
-				sqlUpdate += "TARGET." + fieldName + " = SOURCE." + fieldName
+				sqlUpdate += "TARGET." + _fieldName + " = SOURCE." + _fieldName
 			}
-			sqlInsert += fieldName
-			sqlValues += "SOURCE." + fieldName
+			sqlInsert += _fieldName
+			sqlValues += "SOURCE." + _fieldName
 		}
 	}
 
