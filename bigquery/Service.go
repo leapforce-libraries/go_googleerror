@@ -458,7 +458,7 @@ func (service *Service) Delete(sqlConfig *SQLConfig) *errortools.Error {
 // Merge runs merge query in Service, schema contains the table schema which needs to match the Service table.
 // All properties of model with suffix 'Json' will be ignored. All rows with Ignore = TRUE will be ignored as well.
 //
-func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLConfig, joinFields []string, hasIgnoreField bool) *errortools.Error {
+func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLConfig, joinFields []string, doNotUpdateFields []string, hasIgnoreField bool) *errortools.Error {
 	if sqlConfigSource == nil {
 		return errortools.ErrorMessage("sqlConfigSource is nil pointer")
 	}
@@ -486,7 +486,9 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 				sqlInsert += ","
 				sqlValues += ","
 			}
-			sqlUpdate += "TARGET." + fieldName + " = SOURCE." + fieldName
+			if !strings.Contains(fmt.Sprintf(";%s;", strings.ToLower(strings.Join(doNotUpdateFields, ";"))), fmt.Sprintf(";%s;", fieldName)) {
+				sqlUpdate += "TARGET." + fieldName + " = SOURCE." + fieldName
+			}
 			sqlInsert += fieldName
 			sqlValues += "SOURCE." + fieldName
 		}
