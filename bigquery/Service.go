@@ -486,7 +486,7 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 				sqlInsert += ","
 				sqlValues += ","
 			}
-			if !strings.Contains(fmt.Sprintf(";%s;", strings.ToLower(strings.Join(doNotUpdateFields, ";"))), fmt.Sprintf(";%s;", fieldName)) {
+			if !strings.Contains(fmt.Sprintf(";%s;", strings.ToLower(strings.Join(doNotUpdateFields, ";"))), fmt.Sprintf(";%s;", strings.ToLower(fieldName))) {
 				sqlUpdate += "TARGET." + fieldName + " = SOURCE." + fieldName
 			}
 			sqlInsert += fieldName
