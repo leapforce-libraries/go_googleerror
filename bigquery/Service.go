@@ -458,7 +458,7 @@ func (service *Service) Delete(sqlConfig *SQLConfig) *errortools.Error {
 // Merge runs merge query in Service, schema contains the table schema which needs to match the Service table.
 // All properties of model with suffix 'Json' will be ignored. All rows with Ignore = TRUE will be ignored as well.
 //
-func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLConfig, joinFields []string, doNotUpdateFields []string, hasIgnoreField bool) *errortools.Error {
+func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLConfig, joinFields []string, doNotUpdateFields *[]string, hasIgnoreField bool) *errortools.Error {
 	if sqlConfigSource == nil {
 		return errortools.ErrorMessage("sqlConfigSource is nil pointer")
 	}
@@ -474,6 +474,13 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 	v := reflect.ValueOf(sqlConfigTarget.ModelOrSchema)
 	vType := v.Type()
 
+	updateField := func(fieldName string) bool {
+		if doNotUpdateFields == nil {
+			return true
+		}
+		return !strings.Contains(fmt.Sprintf(";%s;", strings.ToLower(strings.Join(*doNotUpdateFields, ";"))), fmt.Sprintf(";%s;", strings.ToLower(fieldName)))
+	}
+
 	for i := 0; i < v.NumField(); i++ {
 		fieldName := vType.Field(i).Name
 
@@ -486,7 +493,7 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 				sqlInsert += ","
 				sqlValues += ","
 			}
-			if !strings.Contains(fmt.Sprintf(";%s;", strings.ToLower(strings.Join(doNotUpdateFields, ";"))), fmt.Sprintf(";%s;", strings.ToLower(fieldName))) {
+			if updateField(fieldName) {
 				sqlUpdate += "TARGET." + _fieldName + " = SOURCE." + _fieldName
 			}
 			sqlInsert += _fieldName
