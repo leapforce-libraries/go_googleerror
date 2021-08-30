@@ -469,7 +469,7 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 		return errortools.ErrorMessage("Specify at least one join field")
 	}
 
-	var sqlUpdate, sqlInsert, sqlValues string = ``, ``, ``
+	var sqlUpdate, sqlInsert, sqlValues []string
 
 	v := reflect.ValueOf(sqlConfigTarget.ModelOrSchema)
 	vType := v.Type()
@@ -488,16 +488,11 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 			// fieldNames ending with "Json" should not be imported
 			_fieldName := "`" + fieldName + "`"
 
-			if i > 0 {
-				sqlUpdate += ","
-				sqlInsert += ","
-				sqlValues += ","
-			}
 			if updateField(fieldName) {
-				sqlUpdate += "TARGET." + _fieldName + " = SOURCE." + _fieldName
+				sqlUpdate = append(sqlUpdate, "TARGET."+_fieldName+" = SOURCE."+_fieldName)
 			}
-			sqlInsert += _fieldName
-			sqlValues += "SOURCE." + _fieldName
+			sqlInsert = append(sqlInsert, _fieldName)
+			sqlValues = append(sqlValues, "SOURCE."+_fieldName)
 		}
 	}
 
@@ -513,12 +508,12 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 	if hasIgnoreField {
 		sql += " AND SOURCE.Ignore IS FALSE"
 	}
-	sql += " THEN UPDATE SET " + sqlUpdate
+	sql += " THEN UPDATE SET " + strings.Join(sqlUpdate, ",")
 	sql += " WHEN NOT MATCHED BY TARGET"
 	if hasIgnoreField {
 		sql += " AND SOURCE.Ignore IS FALSE"
 	}
-	sql += " THEN INSERT(" + sqlInsert + ") VALUES(" + sqlValues + ")"
+	sql += " THEN INSERT(" + strings.Join(sqlInsert, ",") + ") VALUES(" + strings.Join(sqlValues, ",") + ")"
 
 	return service.Run(sql, "merging")
 }
