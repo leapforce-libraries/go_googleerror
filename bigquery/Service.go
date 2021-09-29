@@ -25,6 +25,7 @@ type SQLConfig struct {
 	TableOrViewName  *string
 	TableOrViewAlias *string
 	SQLSelect        *string
+	SQLDistinct      *bool
 	SQLWhere         *string
 	SQLOrderBy       *string
 	SQLLimit         *uint64
@@ -360,6 +361,13 @@ func (service *Service) Select(sqlConfig *SQLConfig) (*bigquery.RowIterator, *er
 		_sqlSelect = *sqlConfig.SQLSelect
 	}
 
+	_sqlDistinct := ""
+	if sqlConfig.SQLDistinct != nil {
+		if *sqlConfig.SQLDistinct {
+			_sqlDistinct = " DISTINCT "
+		}
+	}
+
 	_sqlAlias := ""
 	if sqlConfig.TableOrViewAlias != nil {
 		_sqlAlias = fmt.Sprintf("%s ", *sqlConfig.TableOrViewAlias)
@@ -387,7 +395,7 @@ func (service *Service) Select(sqlConfig *SQLConfig) (*bigquery.RowIterator, *er
 		_sqlLimit = fmt.Sprintf("LIMIT %v", *sqlConfig.SQLLimit)
 	}
 
-	sql := "SELECT " + _sqlSelect + " FROM `" + sqlConfig.DatasetName + "." + *sqlConfig.TableOrViewName + "` " + _sqlAlias + " " + _sqlWhere + " " + _sqlOrderBy + " " + _sqlLimit
+	sql := "SELECT " + _sqlDistinct + _sqlSelect + " FROM `" + sqlConfig.DatasetName + "." + *sqlConfig.TableOrViewName + "` " + _sqlAlias + " " + _sqlWhere + " " + _sqlOrderBy + " " + _sqlLimit
 	//fmt.Println(sql)
 
 	return service.select_(sql)
