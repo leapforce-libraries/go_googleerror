@@ -2,6 +2,7 @@ package google
 
 import (
 	"net/http"
+	"strings"
 
 	errortools "github.com/leapforce-libraries/go_errortools"
 	bigquery "github.com/leapforce-libraries/go_google/bigquery"
@@ -155,4 +156,8 @@ func (service *Service) APICallCount() int64 {
 
 func (service *Service) APIReset() {
 	service.oAuth2Service.APIReset()
+}
+
+func (service *Service) ClientIDShort() string {
+	return strings.Split(service.clientID, ".")[0]
 }
