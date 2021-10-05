@@ -158,6 +158,6 @@ func (service *Service) APIReset() {
 	service.oAuth2Service.APIReset()
 }
 
-func (service *Service) ClientIDShort() string {
-	return strings.Split(service.clientID, ".")[0]
+func ClientIDShort(clientID string) string {
+	return strings.Split(clientID, ".")[0]
 }
