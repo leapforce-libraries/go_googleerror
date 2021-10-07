@@ -35,6 +35,14 @@ const (
 	tableRefreshToken  string = "leapforce.oauth2"
 )
 
+type AuthorizationMode string
+
+const (
+	AuthorizationModeOAuth2      AuthorizationMode = "oauth2"
+	AuthorizationModeAPIKey      AuthorizationMode = "apikey"
+	AuthorizationModeAccessToken AuthorizationMode = "accesstoken"
+)
+
 // methods
 //
 func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service) (*Service, *errortools.Error) {
