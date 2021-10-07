@@ -103,31 +103,11 @@ func (service *Service) SetToken(token *oauth2.Token) {
 	service.oAuth2Service.SetToken(token)
 }
 
-func (service *Service) Get(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	return service.HTTPRequest(http.MethodGet, requestConfig)
-}
-
-func (service *Service) Post(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	return service.HTTPRequest(http.MethodPost, requestConfig)
-}
-
-func (service *Service) Put(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	return service.HTTPRequest(http.MethodPut, requestConfig)
-}
-
-func (service *Service) Patch(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	return service.HTTPRequest(http.MethodPatch, requestConfig)
-}
-
-func (service *Service) Delete(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	return service.HTTPRequest(http.MethodDelete, requestConfig)
-}
-
-func (service *Service) HTTPRequest(httpMethod string, requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
+func (service *Service) HTTPRequest(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	err := ErrorResponse{}
 	requestConfig.ErrorModel = &err
 
-	request, response, e := service.oAuth2Service.HTTPRequest(httpMethod, requestConfig, false)
+	request, response, e := service.oAuth2Service.HTTPRequest(requestConfig.Method, requestConfig, false)
 
 	if e != nil {
 		if err.Error.Message != "" {
