@@ -47,12 +47,12 @@ func GetToken(apiName string, clientID string, service *go_bigquery.Service) (*o
 	}
 
 	return &oauth2.Token{
-		go_bigquery.NullStringToString(token.AccessToken),
-		go_bigquery.NullStringToString(token.Scope),
-		go_bigquery.NullStringToString(token.TokenType),
-		nil,
-		go_bigquery.NullStringToString(token.RefreshToken),
-		expiry,
+		AccessToken:  go_bigquery.NullStringToString(token.AccessToken),
+		Scope:        go_bigquery.NullStringToString(token.Scope),
+		TokenType:    go_bigquery.NullStringToString(token.TokenType),
+		ExpiresIn:    nil,
+		RefreshToken: go_bigquery.NullStringToString(token.RefreshToken),
+		Expiry:       expiry,
 	}, nil
 }
 

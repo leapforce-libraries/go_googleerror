@@ -107,7 +107,7 @@ func (service *Service) HTTPRequest(requestConfig *go_http.RequestConfig) (*http
 	err := ErrorResponse{}
 	requestConfig.ErrorModel = &err
 
-	request, response, e := service.oAuth2Service.HTTPRequest(requestConfig.Method, requestConfig)
+	request, response, e := service.oAuth2Service.HTTPRequest(requestConfig)
 
 	if e != nil {
 		if err.Error.Message != "" {
