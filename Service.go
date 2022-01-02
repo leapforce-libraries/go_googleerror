@@ -122,12 +122,12 @@ func (service *Service) ValidateToken() (*oauth2.Token, *errortools.Error) {
 	return service.oAuth2Service.ValidateToken()
 }
 
-func (service *Service) AuthorizeURL(scope string, accessType *string, prompt *string, state *string) string {
+/*func (service *Service) AuthorizeURL(scope string, accessType *string, prompt *string, state *string) string {
 	return service.oAuth2Service.AuthorizeURL(scope, accessType, prompt, state)
-}
+}*/
 
-func (service *Service) GetAccessTokenFromCode(r *http.Request) *errortools.Error {
-	return service.oAuth2Service.GetAccessTokenFromCode(r)
+func (service *Service) GetTokenFromCode(r *http.Request) *errortools.Error {
+	return service.oAuth2Service.GetTokenFromCode(r)
 }
 
 func (service *Service) APIName() string {
