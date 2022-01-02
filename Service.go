@@ -23,6 +23,7 @@ type ServiceConfig struct {
 	ClientID          string
 	ClientSecret      string
 	RedirectURL       *string
+	RefreshMargin     *int
 	GetTokenFunction  *func() (*oauth2.Token, *errortools.Error)
 	SaveTokenFunction *func(token *oauth2.Token) *errortools.Error
 }
@@ -75,6 +76,7 @@ func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service)
 		RedirectURL:       redirectURL,
 		AuthURL:           authURL,
 		TokenURL:          tokenURL,
+		RefreshMargin:     serviceConfig.RefreshMargin,
 		TokenHTTPMethod:   tokenHTTPMethod,
 		GetTokenFunction:  &getTokenFunction,
 		SaveTokenFunction: &saveTokenFunction,
