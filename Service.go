@@ -3,6 +3,7 @@ package google
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	errortools "github.com/leapforce-libraries/go_errortools"
 	bigquery "github.com/leapforce-libraries/go_google/bigquery"
@@ -23,7 +24,7 @@ type ServiceConfig struct {
 	ClientID          string
 	ClientSecret      string
 	RedirectURL       *string
-	RefreshMargin     *int
+	RefreshMargin     *time.Duration
 	GetTokenFunction  *func() (*oauth2.Token, *errortools.Error)
 	SaveTokenFunction *func(token *oauth2.Token) *errortools.Error
 }
