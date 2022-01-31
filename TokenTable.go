@@ -6,13 +6,13 @@ import (
 
 	errortools "github.com/leapforce-libraries/go_errortools"
 	go_bigquery "github.com/leapforce-libraries/go_google/bigquery"
-	go_oauth2 "github.com/leapforce-libraries/go_oauth2"
+	go_token "github.com/leapforce-libraries/go_oauth2/token"
 )
 
 type TokenTable struct {
 	apiName         string
 	clientID        string
-	token           *go_oauth2.Token
+	token           *go_token.Token
 	bigQueryService *go_bigquery.Service
 }
 
@@ -28,15 +28,15 @@ func NewTokenTable(apiName string, clientID string, bigQueryService *go_bigquery
 	}, nil
 }
 
-func (t *TokenTable) Token() *go_oauth2.Token {
+func (t *TokenTable) Token() *go_token.Token {
 	return t.token
 }
 
-func (t *TokenTable) NewToken() (*go_oauth2.Token, *errortools.Error) {
+func (t *TokenTable) NewToken() (*go_token.Token, *errortools.Error) {
 	return nil, nil
 }
 
-func (t *TokenTable) SetToken(token *go_oauth2.Token, save bool) *errortools.Error {
+func (t *TokenTable) SetToken(token *go_token.Token, save bool) *errortools.Error {
 	t.token = token
 
 	if !save {
@@ -50,7 +50,7 @@ func (t *TokenTable) RetrieveToken() *errortools.Error {
 	sqlSelect := "TokenType, AccessToken, RefreshToken, Expiry, Scope"
 	sqlWhere := fmt.Sprintf("Api = '%s' AND ClientID = '%s'", t.apiName, t.clientID)
 
-	token := new(go_oauth2.Token)
+	token := new(go_token.Token)
 
 	tableName := tableRefreshToken
 	sqlConfig := go_bigquery.SQLConfig{

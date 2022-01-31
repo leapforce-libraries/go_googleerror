@@ -9,6 +9,7 @@ import (
 	bigquery "github.com/leapforce-libraries/go_google/bigquery"
 	go_http "github.com/leapforce-libraries/go_http"
 	oauth2 "github.com/leapforce-libraries/go_oauth2"
+	go_token "github.com/leapforce-libraries/go_oauth2/token"
 )
 
 // Service stores GoogleService configuration
@@ -101,7 +102,7 @@ func (service *Service) HTTPRequest(requestConfig *go_http.RequestConfig) (*http
 	return request, response, e
 }
 
-func (service *Service) ValidateToken() (*oauth2.Token, *errortools.Error) {
+func (service *Service) ValidateToken() (*go_token.Token, *errortools.Error) {
 	return service.oAuth2Service.ValidateToken()
 }
 
