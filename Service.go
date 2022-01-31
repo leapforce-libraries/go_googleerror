@@ -20,13 +20,11 @@ type Service struct {
 }
 
 type ServiceConfig struct {
-	APIName           string
-	ClientID          string
-	ClientSecret      string
-	RedirectURL       *string
-	RefreshMargin     *time.Duration
-	GetTokenFunction  *func() (*oauth2.Token, *errortools.Error)
-	SaveTokenFunction *func(token *oauth2.Token) *errortools.Error
+	APIName       string
+	ClientID      string
+	ClientSecret  string
+	RedirectURL   *string
+	RefreshMargin *time.Duration
 }
 
 const (
@@ -52,18 +50,9 @@ func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service)
 		return nil, errortools.ErrorMessage("ServiceConfig must not be a nil pointer")
 	}
 
-	getTokenFunction := func() (*oauth2.Token, *errortools.Error) {
-		return GetToken(serviceConfig.APIName, serviceConfig.ClientID, bigQueryService)
-	}
-	if serviceConfig.GetTokenFunction != nil {
-		getTokenFunction = *serviceConfig.GetTokenFunction
-	}
-
-	saveTokenFunction := func(token *oauth2.Token) *errortools.Error {
-		return SaveToken(serviceConfig.APIName, serviceConfig.ClientID, token, bigQueryService)
-	}
-	if serviceConfig.SaveTokenFunction != nil {
-		saveTokenFunction = *serviceConfig.SaveTokenFunction
+	tokenTable, e := NewTokenTable(serviceConfig.APIName, serviceConfig.ClientID, bigQueryService)
+	if e != nil {
+		return nil, e
 	}
 
 	redirectURL := defaultRedirectURL
@@ -72,15 +61,14 @@ func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service)
 	}
 
 	oauth2ServiceConfig := oauth2.ServiceConfig{
-		ClientID:          serviceConfig.ClientID,
-		ClientSecret:      serviceConfig.ClientSecret,
-		RedirectURL:       redirectURL,
-		AuthURL:           authURL,
-		TokenURL:          tokenURL,
-		RefreshMargin:     serviceConfig.RefreshMargin,
-		TokenHTTPMethod:   tokenHTTPMethod,
-		GetTokenFunction:  &getTokenFunction,
-		SaveTokenFunction: &saveTokenFunction,
+		ClientID:        serviceConfig.ClientID,
+		ClientSecret:    serviceConfig.ClientSecret,
+		RedirectURL:     redirectURL,
+		AuthURL:         authURL,
+		TokenURL:        tokenURL,
+		RefreshMargin:   serviceConfig.RefreshMargin,
+		TokenHTTPMethod: tokenHTTPMethod,
+		TokenSource:     tokenTable,
 	}
 	oauth2Service, e := oauth2.NewService(&oauth2ServiceConfig)
 	if e != nil {
@@ -96,14 +84,6 @@ func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service)
 
 func (service *Service) InitToken(scope string, accessType *string, prompt *string, state *string) *errortools.Error {
 	return service.oAuth2Service.InitToken(scope, accessType, prompt, state)
-}
-
-func (service *Service) GetToken() *oauth2.Token {
-	return service.oAuth2Service.GetToken()
-}
-
-func (service *Service) SetToken(token *oauth2.Token) {
-	service.oAuth2Service.SetToken(token)
 }
 
 func (service *Service) HTTPRequest(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
@@ -124,10 +104,6 @@ func (service *Service) HTTPRequest(requestConfig *go_http.RequestConfig) (*http
 func (service *Service) ValidateToken() (*oauth2.Token, *errortools.Error) {
 	return service.oAuth2Service.ValidateToken()
 }
-
-/*func (service *Service) AuthorizeURL(scope string, accessType *string, prompt *string, state *string) string {
-	return service.oAuth2Service.AuthorizeURL(scope, accessType, prompt, state)
-}*/
 
 func (service *Service) GetTokenFromCode(r *http.Request) *errortools.Error {
 	return service.oAuth2Service.GetTokenFromCode(r)
