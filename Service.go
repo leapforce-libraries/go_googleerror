@@ -10,6 +10,7 @@ import (
 	go_http "github.com/leapforce-libraries/go_http"
 	oauth2 "github.com/leapforce-libraries/go_oauth2"
 	go_token "github.com/leapforce-libraries/go_oauth2/token"
+	tokensource "github.com/leapforce-libraries/go_oauth2/tokensource"
 )
 
 // Service stores GoogleService configuration
@@ -24,6 +25,7 @@ type ServiceConfig struct {
 	APIName       string
 	ClientID      string
 	ClientSecret  string
+	TokenSource   tokensource.TokenSource
 	RedirectURL   *string
 	RefreshMargin *time.Duration
 }
@@ -51,11 +53,6 @@ func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service)
 		return nil, errortools.ErrorMessage("ServiceConfig must not be a nil pointer")
 	}
 
-	tokenTable, e := NewTokenTable(serviceConfig.APIName, serviceConfig.ClientID, bigQueryService)
-	if e != nil {
-		return nil, e
-	}
-
 	redirectURL := defaultRedirectURL
 	if serviceConfig.RedirectURL != nil {
 		redirectURL = *serviceConfig.RedirectURL
@@ -69,7 +66,7 @@ func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service)
 		TokenURL:        tokenURL,
 		RefreshMargin:   serviceConfig.RefreshMargin,
 		TokenHTTPMethod: tokenHTTPMethod,
-		TokenSource:     tokenTable,
+		TokenSource:     serviceConfig.TokenSource,
 	}
 	oauth2Service, e := oauth2.NewService(&oauth2ServiceConfig)
 	if e != nil {
