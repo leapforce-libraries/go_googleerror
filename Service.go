@@ -99,6 +99,10 @@ func (service *Service) HTTPRequest(requestConfig *go_http.RequestConfig) (*http
 	return request, response, e
 }
 
+func (service *Service) AuthorizeURL(scope string, accessType *string, prompt *string, state *string) string {
+	return service.oAuth2Service.AuthorizeURL(scope, accessType, prompt, state)
+}
+
 func (service *Service) ValidateToken() (*go_token.Token, *errortools.Error) {
 	return service.oAuth2Service.ValidateToken()
 }
