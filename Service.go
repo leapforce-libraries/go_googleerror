@@ -6,7 +6,6 @@ import (
 	"time"
 
 	errortools "github.com/leapforce-libraries/go_errortools"
-	bigquery "github.com/leapforce-libraries/go_google/bigquery"
 	go_http "github.com/leapforce-libraries/go_http"
 	oauth2 "github.com/leapforce-libraries/go_oauth2"
 	go_token "github.com/leapforce-libraries/go_oauth2/token"
@@ -48,7 +47,7 @@ const (
 
 // methods
 //
-func NewService(serviceConfig *ServiceConfig, bigQueryService *bigquery.Service) (*Service, *errortools.Error) {
+func NewService(serviceConfig *ServiceConfig) (*Service, *errortools.Error) {
 	if serviceConfig == nil {
 		return nil, errortools.ErrorMessage("ServiceConfig must not be a nil pointer")
 	}
