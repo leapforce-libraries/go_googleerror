@@ -37,12 +37,12 @@ type authorizationMode string
 
 const (
 	authorizationModeOAuth2      authorizationMode = "oauth2"
-	authorizationModeAPIKey      authorizationMode = "apikey"
+	authorizationModeApiKey      authorizationMode = "apikey"
 	authorizationModeAccessToken authorizationMode = "accesstoken"
 )
 
 type ServiceWithOAuth2Config struct {
-	APIName       string
+	ApiName       string
 	ClientID      string
 	ClientSecret  string
 	TokenSource   tokensource.TokenSource
@@ -80,7 +80,7 @@ func NewServiceWithOAuth2(cfg *ServiceWithOAuth2Config) (*Service, *errortools.E
 	}
 
 	return &Service{
-		apiName:           cfg.APIName,
+		apiName:           cfg.ApiName,
 		authorizationMode: authorizationModeOAuth2,
 		clientID:          cfg.ClientID,
 		oAuth2Service:     oauth2Service,
@@ -88,7 +88,7 @@ func NewServiceWithOAuth2(cfg *ServiceWithOAuth2Config) (*Service, *errortools.E
 }
 
 type ServiceWithAccessTokenConfig struct {
-	APIName     string
+	ApiName     string
 	AccessToken string
 }
 
@@ -107,25 +107,25 @@ func NewServiceWithAccessToken(cfg *ServiceWithAccessTokenConfig) (*Service, *er
 	}
 
 	return &Service{
-		apiName:           cfg.APIName,
+		apiName:           cfg.ApiName,
 		authorizationMode: authorizationModeAccessToken,
 		accessToken:       &cfg.AccessToken,
 		httpService:       httpService,
 	}, nil
 }
 
-type ServiceConfigWithAPIKey struct {
-	APIName string
-	APIKey  string
+type ServiceWithApiKeyConfig struct {
+	ApiName string
+	ApiKey  string
 }
 
-func NewServiceWithAPIKey(cfg *ServiceConfigWithAPIKey) (*Service, *errortools.Error) {
+func NewServiceWithApiKey(cfg *ServiceWithApiKeyConfig) (*Service, *errortools.Error) {
 	if cfg == nil {
 		return nil, errortools.ErrorMessage("ServiceConfig must not be a nil pointer")
 	}
 
-	if cfg.APIKey == "" {
-		return nil, errortools.ErrorMessage("APIKey not provided")
+	if cfg.ApiKey == "" {
+		return nil, errortools.ErrorMessage("ApiKey not provided")
 	}
 
 	httpService, e := go_http.NewService(&go_http.ServiceConfig{})
@@ -134,9 +134,9 @@ func NewServiceWithAPIKey(cfg *ServiceConfigWithAPIKey) (*Service, *errortools.E
 	}
 
 	return &Service{
-		apiName:           cfg.APIName,
-		authorizationMode: authorizationModeAPIKey,
-		apiKey:            &cfg.APIKey,
+		apiName:           cfg.ApiName,
+		authorizationMode: authorizationModeApiKey,
+		apiKey:            &cfg.ApiKey,
 		httpService:       httpService,
 	}, nil
 }
@@ -157,7 +157,7 @@ func (service *Service) HttpRequest(requestConfig *go_http.RequestConfig) (*http
 	if service.authorizationMode == authorizationModeOAuth2 {
 		request, response, e = service.oAuth2Service.HTTPRequest(requestConfig)
 	} else {
-		if service.authorizationMode == authorizationModeAPIKey {
+		if service.authorizationMode == authorizationModeApiKey {
 			// add api key
 			requestConfig.SetParameter("key", *service.apiKey)
 		}
@@ -196,20 +196,20 @@ func (service *Service) GetTokenFromCode(r *http.Request) *errortools.Error {
 	return service.oAuth2Service.GetTokenFromCode(r)
 }
 
-func (service *Service) APIName() string {
+func (service *Service) ApiName() string {
 	return service.apiName
 }
 
-func (service *Service) APIKey() string {
+func (service *Service) ApiKey() string {
 	return clientIDShort(service.clientID)
 }
 
-func (service *Service) APICallCount() int64 {
-	return service.oAuth2Service.APICallCount()
+func (service *Service) ApiCallCount() int64 {
+	return service.oAuth2Service.ApiCallCount()
 }
 
-func (service *Service) APIReset() {
-	service.oAuth2Service.APIReset()
+func (service *Service) ApiReset() {
+	service.oAuth2Service.ApiReset()
 }
 
 func clientIDShort(clientID string) string {
