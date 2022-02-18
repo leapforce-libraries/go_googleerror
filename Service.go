@@ -1,6 +1,7 @@
 package google
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -15,18 +16,13 @@ import (
 // Service stores GoogleService configuration
 //
 type Service struct {
-	apiName       string
-	clientID      string
-	oAuth2Service *oauth2.Service
-}
-
-type ServiceConfig struct {
-	APIName       string
-	ClientID      string
-	ClientSecret  string
-	TokenSource   tokensource.TokenSource
-	RedirectURL   *string
-	RefreshMargin *time.Duration
+	apiName           string
+	authorizationMode authorizationMode
+	clientID          string
+	apiKey            *string
+	accessToken       *string
+	httpService       *go_http.Service
+	oAuth2Service     *oauth2.Service
 }
 
 const (
@@ -37,35 +33,46 @@ const (
 	tableRefreshToken  string = "leapforce.oauth2"
 )
 
-type AuthorizationMode string
+type authorizationMode string
 
 const (
-	AuthorizationModeOAuth2      AuthorizationMode = "oauth2"
-	AuthorizationModeAPIKey      AuthorizationMode = "apikey"
-	AuthorizationModeAccessToken AuthorizationMode = "accesstoken"
+	authorizationModeOAuth2      authorizationMode = "oauth2"
+	authorizationModeAPIKey      authorizationMode = "apikey"
+	authorizationModeAccessToken authorizationMode = "accesstoken"
 )
 
-// methods
-//
-func NewService(serviceConfig *ServiceConfig) (*Service, *errortools.Error) {
-	if serviceConfig == nil {
+type ServiceWithOAuth2Config struct {
+	APIName       string
+	ClientID      string
+	ClientSecret  string
+	TokenSource   tokensource.TokenSource
+	RedirectURL   *string
+	RefreshMargin *time.Duration
+}
+
+func NewServiceWithOAuth2(cfg *ServiceWithOAuth2Config) (*Service, *errortools.Error) {
+	if cfg == nil {
 		return nil, errortools.ErrorMessage("ServiceConfig must not be a nil pointer")
 	}
 
+	if cfg.ClientID == "" {
+		return nil, errortools.ErrorMessage("ClientID not provided")
+	}
+
 	redirectURL := defaultRedirectURL
-	if serviceConfig.RedirectURL != nil {
-		redirectURL = *serviceConfig.RedirectURL
+	if cfg.RedirectURL != nil {
+		redirectURL = *cfg.RedirectURL
 	}
 
 	oauth2ServiceConfig := oauth2.ServiceConfig{
-		ClientID:        serviceConfig.ClientID,
-		ClientSecret:    serviceConfig.ClientSecret,
+		ClientID:        cfg.ClientID,
+		ClientSecret:    cfg.ClientSecret,
 		RedirectURL:     redirectURL,
 		AuthURL:         authURL,
 		TokenURL:        tokenURL,
-		RefreshMargin:   serviceConfig.RefreshMargin,
+		RefreshMargin:   cfg.RefreshMargin,
 		TokenHTTPMethod: tokenHTTPMethod,
-		TokenSource:     serviceConfig.TokenSource,
+		TokenSource:     cfg.TokenSource,
 	}
 	oauth2Service, e := oauth2.NewService(&oauth2ServiceConfig)
 	if e != nil {
@@ -73,9 +80,64 @@ func NewService(serviceConfig *ServiceConfig) (*Service, *errortools.Error) {
 	}
 
 	return &Service{
-		apiName:       serviceConfig.APIName,
-		clientID:      serviceConfig.ClientID,
-		oAuth2Service: oauth2Service,
+		apiName:           cfg.APIName,
+		authorizationMode: authorizationModeOAuth2,
+		clientID:          cfg.ClientID,
+		oAuth2Service:     oauth2Service,
+	}, nil
+}
+
+type ServiceWithAccessTokenConfig struct {
+	APIName     string
+	AccessToken string
+}
+
+func NewServiceWithAccessToken(cfg *ServiceWithAccessTokenConfig) (*Service, *errortools.Error) {
+	if cfg == nil {
+		return nil, errortools.ErrorMessage("ServiceConfig must not be a nil pointer")
+	}
+
+	if cfg.AccessToken == "" {
+		return nil, errortools.ErrorMessage("AccessToken not provided")
+	}
+
+	httpService, e := go_http.NewService(&go_http.ServiceConfig{})
+	if e != nil {
+		return nil, e
+	}
+
+	return &Service{
+		apiName:           cfg.APIName,
+		authorizationMode: authorizationModeAccessToken,
+		accessToken:       &cfg.AccessToken,
+		httpService:       httpService,
+	}, nil
+}
+
+type ServiceConfigWithAPIKey struct {
+	APIName string
+	APIKey  string
+}
+
+func NewServiceWithAPIKey(cfg *ServiceConfigWithAPIKey) (*Service, *errortools.Error) {
+	if cfg == nil {
+		return nil, errortools.ErrorMessage("ServiceConfig must not be a nil pointer")
+	}
+
+	if cfg.APIKey == "" {
+		return nil, errortools.ErrorMessage("APIKey not provided")
+	}
+
+	httpService, e := go_http.NewService(&go_http.ServiceConfig{})
+	if e != nil {
+		return nil, e
+	}
+
+	return &Service{
+		apiName:           cfg.APIName,
+		authorizationMode: authorizationModeAPIKey,
+		apiKey:            &cfg.APIKey,
+		httpService:       httpService,
 	}, nil
 }
 
@@ -83,19 +145,43 @@ func (service *Service) InitToken(scope string, accessType *string, prompt *stri
 	return service.oAuth2Service.InitToken(scope, accessType, prompt, state)
 }
 
-func (service *Service) HTTPRequest(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
-	err := ErrorResponse{}
-	requestConfig.ErrorModel = &err
+func (service *Service) HttpRequest(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
+	var request *http.Request
+	var response *http.Response
+	var e *errortools.Error
 
-	request, response, e := service.oAuth2Service.HTTPRequest(requestConfig)
+	// add error model
+	errorResponse := ErrorResponse{}
+	requestConfig.ErrorModel = &errorResponse
+
+	if service.authorizationMode == authorizationModeOAuth2 {
+		request, response, e = service.oAuth2Service.HTTPRequest(requestConfig)
+	} else {
+		if service.authorizationMode == authorizationModeAPIKey {
+			// add api key
+			requestConfig.SetParameter("key", *service.apiKey)
+		}
+		if service.accessToken != nil {
+			// add accesstoken to header
+			header := http.Header{}
+			header.Set("Authorization", fmt.Sprintf("Bearer %s", *service.accessToken))
+			requestConfig.NonDefaultHeaders = &header
+		}
+
+		request, response, e = service.httpService.HTTPRequest(requestConfig)
+	}
 
 	if e != nil {
-		if err.Error.Message != "" {
-			e.SetMessage(err.Error.Message)
+		if errorResponse.Error.Message != "" {
+			e.SetMessage(errorResponse.Error.Message)
 		}
 	}
 
-	return request, response, e
+	if e != nil {
+		return request, response, e
+	}
+
+	return request, response, nil
 }
 
 func (service *Service) AuthorizeURL(scope string, accessType *string, prompt *string, state *string) string {
@@ -115,7 +201,7 @@ func (service *Service) APIName() string {
 }
 
 func (service *Service) APIKey() string {
-	return service.clientID
+	return clientIDShort(service.clientID)
 }
 
 func (service *Service) APICallCount() int64 {
@@ -126,6 +212,6 @@ func (service *Service) APIReset() {
 	service.oAuth2Service.APIReset()
 }
 
-func ClientIDShort(clientID string) string {
+func clientIDShort(clientID string) string {
 	return strings.Split(clientID, ".")[0]
 }
