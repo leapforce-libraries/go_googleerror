@@ -61,7 +61,7 @@ type Service struct {
 
 type ServiceConfig struct {
 	CredentialsJson *credentials.CredentialsJson
-	ProjectID       string
+	ProjectId       string
 }
 
 func NewService(serviceConfig *ServiceConfig) (*Service, *errortools.Error) {
@@ -73,8 +73,8 @@ func NewService(serviceConfig *ServiceConfig) (*Service, *errortools.Error) {
 		return nil, errortools.ErrorMessage("CredentialsJson not provided")
 	}
 
-	if serviceConfig.ProjectID == "" {
-		return nil, errortools.ErrorMessage("ProjectID not provided")
+	if serviceConfig.ProjectId == "" {
+		return nil, errortools.ErrorMessage("ProjectId not provided")
 	}
 
 	ctx := context.Background()
@@ -84,7 +84,7 @@ func NewService(serviceConfig *ServiceConfig) (*Service, *errortools.Error) {
 		return nil, errortools.ErrorMessage(err)
 	}
 
-	client, err := bigquery.NewClient(ctx, serviceConfig.ProjectID, option.WithCredentialsJSON(credentialsByte))
+	client, err := bigquery.NewClient(ctx, serviceConfig.ProjectId, option.WithCredentialsJSON(credentialsByte))
 	if err != nil {
 		return nil, errortools.ErrorMessage(err)
 	}
@@ -142,7 +142,7 @@ func (service *Service) tableExists(dataset *bigquery.Dataset, tableHandle *bigq
 		if err != nil {
 			log.Fatal(err)
 		}
-		if table.TableID == tableHandle.TableID {
+		if table.TableId == tableHandle.TableId {
 			return true, nil
 		}
 	}
@@ -325,29 +325,6 @@ func (service *Service) Insert(table *bigquery.Table, array []interface{}) *erro
 
 	return nil
 }
-
-// InsertSlice : generic function to batchwise stream array into Service table
-// REPLACED BY CreateTable(sqlConfig.Temptable(), slice, false)
-/*func (service *Service) InsertSlice(sqlConfig *SqlConfig, tempTable bool, slice []interface{}) *errortools.Error {
-	tableName := ""
-
-	if tableName == "" {
-		guid := types.NewGUID()
-		tableName = "temp_" + strings.Replace(guid.String(), "-", "", -1)
-	}
-
-	table, errTable := service.CreateTable(sqlConfig, false)
-	if errTable != nil {
-		return errTable
-	}
-
-	errInsert := service.Insert(table, slice)
-	if errInsert != nil {
-		return errInsert
-	}
-
-	return nil
-}*/
 
 // Select returns RowIterator from arbitrary select_ query (was: Get)
 //
