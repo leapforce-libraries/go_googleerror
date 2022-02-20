@@ -60,7 +60,7 @@ type Service struct {
 }
 
 type ServiceConfig struct {
-	CredentialsJSON *credentials.CredentialsJSON
+	CredentialsJson *credentials.CredentialsJson
 	ProjectID       string
 }
 
@@ -69,8 +69,8 @@ func NewService(serviceConfig *ServiceConfig) (*Service, *errortools.Error) {
 		return nil, errortools.ErrorMessage("ServiceConfig is nil pointer")
 	}
 
-	if serviceConfig.CredentialsJSON == nil {
-		return nil, errortools.ErrorMessage("CredentialsJSON not provided")
+	if serviceConfig.CredentialsJson == nil {
+		return nil, errortools.ErrorMessage("CredentialsJson not provided")
 	}
 
 	if serviceConfig.ProjectID == "" {
@@ -79,7 +79,7 @@ func NewService(serviceConfig *ServiceConfig) (*Service, *errortools.Error) {
 
 	ctx := context.Background()
 
-	credentialsByte, err := json.Marshal(serviceConfig.CredentialsJSON)
+	credentialsByte, err := json.Marshal(serviceConfig.CredentialsJson)
 	if err != nil {
 		return nil, errortools.ErrorMessage(err)
 	}
