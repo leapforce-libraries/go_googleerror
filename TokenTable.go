@@ -53,11 +53,11 @@ func (t *TokenTable) RetrieveToken() *errortools.Error {
 	token := new(go_token.Token)
 
 	tableName := tableRefreshToken
-	sqlConfig := go_bigquery.SQLConfig{
+	sqlConfig := go_bigquery.SqlConfig{
 		DatasetName:     "",
 		TableOrViewName: &tableName,
-		SQLSelect:       &sqlSelect,
-		SQLWhere:        &sqlWhere,
+		SqlSelect:       &sqlSelect,
+		SqlWhere:        &sqlWhere,
 	}
 
 	_, e := t.bigQueryService.GetStruct(&sqlConfig, token)

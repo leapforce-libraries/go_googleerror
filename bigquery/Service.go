@@ -20,20 +20,20 @@ import (
 	"google.golang.org/api/option"
 )
 
-type SQLConfig struct {
+type SqlConfig struct {
 	DatasetName      string
 	TableOrViewName  *string
 	TableOrViewAlias *string
-	SQLSelect        *string
-	SQLDistinct      *bool
-	SQLWhere         *string
-	SQLOrderBy       *string
-	SQLLimit         *uint64
+	SqlSelect        *string
+	SqlDistinct      *bool
+	SqlWhere         *string
+	SqlOrderBy       *string
+	SqlLimit         *uint64
 	ModelOrSchema    interface{}
 }
 
-func (sqlConfig SQLConfig) GenerateTempTable() SQLConfig {
-	guid := types.NewGUID()
+func (sqlConfig SqlConfig) GenerateTempTable() SqlConfig {
+	guid := types.NewGuid()
 	tableName := fmt.Sprintf("temp_%s", strings.Replace(guid.String(), "-", "", -1))
 
 	sqlConfig.TableOrViewName = &tableName
@@ -41,7 +41,7 @@ func (sqlConfig SQLConfig) GenerateTempTable() SQLConfig {
 	return sqlConfig
 }
 
-func (sqlConfig *SQLConfig) FullTableName() string {
+func (sqlConfig *SqlConfig) FullTableName() string {
 	if sqlConfig == nil {
 		return ""
 	}
@@ -95,7 +95,7 @@ func NewService(serviceConfig *ServiceConfig) (*Service, *errortools.Error) {
 	}, nil
 }
 
-func (service *Service) GetTables(sqlConfig *SQLConfig) (*[]bigquery.Table, *errortools.Error) {
+func (service *Service) GetTables(sqlConfig *SqlConfig) (*[]bigquery.Table, *errortools.Error) {
 	dataset, e := service.getDataset(sqlConfig)
 	if e != nil {
 		return nil, e
@@ -122,7 +122,7 @@ func (service *Service) GetTables(sqlConfig *SQLConfig) (*[]bigquery.Table, *err
 	return &tables, nil
 }
 
-func (service *Service) TableExists(sqlConfig *SQLConfig) (bool, *errortools.Error) {
+func (service *Service) TableExists(sqlConfig *SqlConfig) (bool, *errortools.Error) {
 	dataset, tableHandle, e := service.getTableHandle(sqlConfig)
 	if e != nil {
 		return false, e
@@ -150,7 +150,7 @@ func (service *Service) tableExists(dataset *bigquery.Dataset, tableHandle *bigq
 	return false, nil
 }
 
-func (service *Service) getDataset(sqlConfig *SQLConfig) (*bigquery.Dataset, *errortools.Error) {
+func (service *Service) getDataset(sqlConfig *SqlConfig) (*bigquery.Dataset, *errortools.Error) {
 	dataset := service.bigQueryClient.Dataset(sqlConfig.DatasetName)
 
 	_, err := dataset.Metadata(service.context)
@@ -162,7 +162,7 @@ func (service *Service) getDataset(sqlConfig *SQLConfig) (*bigquery.Dataset, *er
 	return dataset, nil
 }
 
-func (service *Service) getTableHandle(sqlConfig *SQLConfig) (*bigquery.Dataset, *bigquery.Table, *errortools.Error) {
+func (service *Service) getTableHandle(sqlConfig *SqlConfig) (*bigquery.Dataset, *bigquery.Table, *errortools.Error) {
 	if sqlConfig.TableOrViewName == nil {
 		return nil, nil, errortools.ErrorMessage("TableOrViewName is nil pointer")
 	}
@@ -177,7 +177,7 @@ func (service *Service) getTableHandle(sqlConfig *SQLConfig) (*bigquery.Dataset,
 
 // CreateTable : creates table based on passed struct scheme
 //
-func (service *Service) CreateTable(sqlConfig *SQLConfig, data *[]interface{}, recreate bool) (*bigquery.Table, *errortools.Error) {
+func (service *Service) CreateTable(sqlConfig *SqlConfig, data *[]interface{}, recreate bool) (*bigquery.Table, *errortools.Error) {
 	dataset, tableHandle, e := service.getTableHandle(sqlConfig)
 	if e != nil {
 		return nil, e
@@ -238,7 +238,7 @@ func (service *Service) CreateTable(sqlConfig *SQLConfig, data *[]interface{}, r
 	return tableHandle, nil
 }
 
-func (service *Service) DeleteTable(sqlConfig *SQLConfig) *errortools.Error {
+func (service *Service) DeleteTable(sqlConfig *SqlConfig) *errortools.Error {
 	dataset, tableHandle, e := service.getTableHandle(sqlConfig)
 	if e != nil {
 		return e
@@ -328,7 +328,7 @@ func (service *Service) Insert(table *bigquery.Table, array []interface{}) *erro
 
 // InsertSlice : generic function to batchwise stream array into Service table
 // REPLACED BY CreateTable(sqlConfig.Temptable(), slice, false)
-/*func (service *Service) InsertSlice(sqlConfig *SQLConfig, tempTable bool, slice []interface{}) *errortools.Error {
+/*func (service *Service) InsertSlice(sqlConfig *SqlConfig, tempTable bool, slice []interface{}) *errortools.Error {
 	tableName := ""
 
 	if tableName == "" {
@@ -351,19 +351,19 @@ func (service *Service) Insert(table *bigquery.Table, array []interface{}) *erro
 
 // Select returns RowIterator from arbitrary select_ query (was: Get)
 //
-func (service *Service) Select(sqlConfig *SQLConfig) (*bigquery.RowIterator, *errortools.Error) {
+func (service *Service) Select(sqlConfig *SqlConfig) (*bigquery.RowIterator, *errortools.Error) {
 	if sqlConfig.TableOrViewName == nil {
 		return nil, errortools.ErrorMessage("TableOrViewName is nil pointer")
 	}
 
 	_sqlSelect := "*"
-	if sqlConfig.SQLSelect != nil {
-		_sqlSelect = *sqlConfig.SQLSelect
+	if sqlConfig.SqlSelect != nil {
+		_sqlSelect = *sqlConfig.SqlSelect
 	}
 
 	_sqlDistinct := ""
-	if sqlConfig.SQLDistinct != nil {
-		if *sqlConfig.SQLDistinct {
+	if sqlConfig.SqlDistinct != nil {
+		if *sqlConfig.SqlDistinct {
 			_sqlDistinct = " DISTINCT "
 		}
 	}
@@ -374,15 +374,15 @@ func (service *Service) Select(sqlConfig *SQLConfig) (*bigquery.RowIterator, *er
 	}
 
 	_sqlWhere := ""
-	if sqlConfig.SQLWhere != nil {
-		if !strings.HasSuffix(strings.ToUpper(*sqlConfig.SQLWhere), "WHERE ") {
-			_sqlWhere = fmt.Sprintf("WHERE %s", *sqlConfig.SQLWhere)
+	if sqlConfig.SqlWhere != nil {
+		if !strings.HasSuffix(strings.ToUpper(*sqlConfig.SqlWhere), "WHERE ") {
+			_sqlWhere = fmt.Sprintf("WHERE %s", *sqlConfig.SqlWhere)
 		}
 	}
 
 	_sqlOrderBy := ""
-	if sqlConfig.SQLOrderBy != nil {
-		_sqlOrderBy = *sqlConfig.SQLOrderBy
+	if sqlConfig.SqlOrderBy != nil {
+		_sqlOrderBy = *sqlConfig.SqlOrderBy
 	}
 	if _sqlOrderBy != "" {
 		if !strings.HasSuffix(strings.ToUpper(_sqlOrderBy), "ORDER BY ") {
@@ -391,8 +391,8 @@ func (service *Service) Select(sqlConfig *SQLConfig) (*bigquery.RowIterator, *er
 	}
 
 	_sqlLimit := ""
-	if sqlConfig.SQLLimit != nil {
-		_sqlLimit = fmt.Sprintf("LIMIT %v", *sqlConfig.SQLLimit)
+	if sqlConfig.SqlLimit != nil {
+		_sqlLimit = fmt.Sprintf("LIMIT %v", *sqlConfig.SqlLimit)
 	}
 
 	sql := "SELECT " + _sqlDistinct + _sqlSelect + " FROM `" + sqlConfig.DatasetName + "." + *sqlConfig.TableOrViewName + "` " + _sqlAlias + " " + _sqlWhere + " " + _sqlOrderBy + " " + _sqlLimit
@@ -422,7 +422,7 @@ func (service *Service) select_(sql string) (*bigquery.RowIterator, *errortools.
 
 // Exists returns whether any arbitrary query returns any rows
 //
-func (service *Service) Exists(sqlConfig *SQLConfig) (bool, *errortools.Error) {
+func (service *Service) Exists(sqlConfig *SqlConfig) (bool, *errortools.Error) {
 	it, e := service.Select(sqlConfig)
 	if e != nil {
 		return false, e
@@ -439,7 +439,7 @@ func (service *Service) Exists(sqlConfig *SQLConfig) (bool, *errortools.Error) {
 
 // Delete deletes rows from table
 //
-func (service *Service) Delete(sqlConfig *SQLConfig) *errortools.Error {
+func (service *Service) Delete(sqlConfig *SqlConfig) *errortools.Error {
 	if sqlConfig == nil {
 		return errortools.ErrorMessage("sqlConfig is nil pointer")
 	}
@@ -449,8 +449,8 @@ func (service *Service) Delete(sqlConfig *SQLConfig) *errortools.Error {
 	}
 
 	sqlWhere := ""
-	if sqlConfig.SQLWhere != nil {
-		sqlWhere = *sqlConfig.SQLWhere
+	if sqlConfig.SqlWhere != nil {
+		sqlWhere = *sqlConfig.SqlWhere
 		if !strings.HasSuffix(sqlWhere, "where ") {
 			sqlWhere = "WHERE " + sqlWhere
 		}
@@ -466,7 +466,7 @@ func (service *Service) Delete(sqlConfig *SQLConfig) *errortools.Error {
 // Merge runs merge query in Service, schema contains the table schema which needs to match the Service table.
 // All properties of model with suffix 'Json' will be ignored. All rows with Ignore = TRUE will be ignored as well.
 //
-func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLConfig, joinFields []string, doNotUpdateFields *[]string, hasIgnoreField bool) *errortools.Error {
+func (service *Service) Merge(sqlConfigSource *SqlConfig, sqlConfigTarget *SqlConfig, joinFields []string, doNotUpdateFields *[]string, hasIgnoreField bool) *errortools.Error {
 	if sqlConfigSource == nil {
 		return errortools.ErrorMessage("sqlConfigSource is nil pointer")
 	}
@@ -528,7 +528,7 @@ func (service *Service) Merge(sqlConfigSource *SQLConfig, sqlConfigTarget *SQLCo
 
 // GetValue returns one single value from query
 //
-func (service *Service) GetValue(sqlConfig *SQLConfig) (*bigquery.Value, *errortools.Error) {
+func (service *Service) GetValue(sqlConfig *SqlConfig) (*bigquery.Value, *errortools.Error) {
 	values, e := service.GetValues(sqlConfig)
 	if e != nil {
 		return nil, e
@@ -543,7 +543,7 @@ func (service *Service) GetValue(sqlConfig *SQLConfig) (*bigquery.Value, *errort
 
 // GetValues returns multiple values from query
 //
-func (service *Service) GetValues(sqlConfig *SQLConfig) (*[]bigquery.Value, *errortools.Error) {
+func (service *Service) GetValues(sqlConfig *SqlConfig) (*[]bigquery.Value, *errortools.Error) {
 	it, e := service.Select(sqlConfig)
 	if e != nil {
 		return nil, e
@@ -565,9 +565,9 @@ func (service *Service) GetValues(sqlConfig *SQLConfig) (*[]bigquery.Value, *err
 
 // GetStruct returns struct from query
 //
-func (service *Service) GetStruct(sqlConfig *SQLConfig, model interface{}) (uint64, *errortools.Error) {
+func (service *Service) GetStruct(sqlConfig *SqlConfig, model interface{}) (uint64, *errortools.Error) {
 	if sqlConfig == nil {
-		return 0, errortools.ErrorMessage("SQLConfig must be a non-nil pointer")
+		return 0, errortools.ErrorMessage("SqlConfig must be a non-nil pointer")
 	}
 
 	it, e := service.Select(sqlConfig)
@@ -592,7 +592,7 @@ func (service *Service) GetStruct(sqlConfig *SQLConfig, model interface{}) (uint
 
 type CopyObjectToTableConfig struct {
 	ObjectHandle  *storage.ObjectHandle
-	SQLConfig     *SQLConfig
+	SqlConfig     *SqlConfig
 	TruncateTable bool
 	DeleteObject  bool
 }
@@ -604,8 +604,8 @@ func (service *Service) CopyObjectToTable(config *CopyObjectToTableConfig) *erro
 		return errortools.ErrorMessage("CopyObjectToTableConfig is nil pointer")
 	}
 
-	if config.SQLConfig == nil {
-		return errortools.ErrorMessage("SQLConfig is nil pointer")
+	if config.SqlConfig == nil {
+		return errortools.ErrorMessage("SqlConfig is nil pointer")
 	}
 
 	//if rowCount > 0 {
@@ -613,9 +613,8 @@ func (service *Service) CopyObjectToTable(config *CopyObjectToTableConfig) *erro
 	gcsRef := bigquery.NewGCSReference(fmt.Sprintf("gs://%s/%s", config.ObjectHandle.BucketName(), config.ObjectHandle.ObjectName()))
 
 	// set FileConfig attribute of GCSReference struct
-	var dataFormat bigquery.DataFormat
-	dataFormat = "NEWLINE_DELIMITED_JSON"
-	schema1, err := bigquery.InferSchema(config.SQLConfig.ModelOrSchema)
+	var dataFormat bigquery.DataFormat = "NEWLINE_DELIMITED_JSON"
+	schema1, err := bigquery.InferSchema(config.SqlConfig.ModelOrSchema)
 	if err != nil {
 		return errortools.ErrorMessage(err)
 	}
@@ -624,7 +623,7 @@ func (service *Service) CopyObjectToTable(config *CopyObjectToTableConfig) *erro
 	gcsRef.FileConfig = flConfig
 
 	// load data from GCN object to Service
-	_, tableHandle, e := service.getTableHandle(config.SQLConfig)
+	_, tableHandle, e := service.getTableHandle(config.SqlConfig)
 	if e != nil {
 		return e
 	}
@@ -679,27 +678,27 @@ func (service *Service) CopyObjectToTable(config *CopyObjectToTableConfig) *erro
 // type conversion functions
 
 func IntToNullInt64(i *int) bigquery.NullInt64 {
-	ii := bigquery.NullInt64{0, false}
+	ii := bigquery.NullInt64{Int64: 0, Valid: false}
 	if i != nil {
-		ii = bigquery.NullInt64{int64(*i), true}
+		ii = bigquery.NullInt64{Int64: int64(*i), Valid: true}
 	}
 
 	return ii
 }
 
 func Int32ToNullInt64(i *int32) bigquery.NullInt64 {
-	ii := bigquery.NullInt64{0, false}
+	ii := bigquery.NullInt64{Int64: 0, Valid: false}
 	if i != nil {
-		ii = bigquery.NullInt64{int64(*i), true}
+		ii = bigquery.NullInt64{Int64: int64(*i), Valid: true}
 	}
 
 	return ii
 }
 
 func Int64ToNullInt64(i *int64) bigquery.NullInt64 {
-	ii := bigquery.NullInt64{0, false}
+	ii := bigquery.NullInt64{Int64: 0, Valid: false}
 	if i != nil {
-		ii = bigquery.NullInt64{*i, true}
+		ii = bigquery.NullInt64{Int64: *i, Valid: true}
 	}
 
 	return ii
@@ -714,9 +713,9 @@ func NullInt64ToInt(i bigquery.NullInt64) *int64 {
 }
 
 func Float64ToNullFloat64(i *float64) bigquery.NullFloat64 {
-	ii := bigquery.NullFloat64{0, false}
+	ii := bigquery.NullFloat64{Float64: 0, Valid: false}
 	if i != nil {
-		ii = bigquery.NullFloat64{float64(*i), true}
+		ii = bigquery.NullFloat64{Float64: float64(*i), Valid: true}
 	}
 
 	return ii
@@ -731,9 +730,9 @@ func NullFloat64ToFloat64(i bigquery.NullFloat64) *float64 {
 }
 
 func StringToNullString(i *string) bigquery.NullString {
-	ii := bigquery.NullString{"", false}
+	ii := bigquery.NullString{StringVal: "", Valid: false}
 	if i != nil {
-		ii = bigquery.NullString{*i, true}
+		ii = bigquery.NullString{StringVal: *i, Valid: true}
 	}
 
 	return ii
@@ -748,10 +747,10 @@ func NullStringToString(i bigquery.NullString) *string {
 }
 
 func TimeToNullTimestamp(t *time.Time) bigquery.NullTimestamp {
-	ts := bigquery.NullTimestamp{time.Now(), false}
+	ts := bigquery.NullTimestamp{Timestamp: time.Now(), Valid: false}
 	if t != nil {
 		if !t.IsZero() {
-			ts = bigquery.NullTimestamp{*t, true}
+			ts = bigquery.NullTimestamp{Timestamp: *t, Valid: true}
 		}
 	}
 
@@ -767,10 +766,10 @@ func NullTimestampToTime(i bigquery.NullTimestamp) *time.Time {
 }
 
 func DateToNullTimestamp(d *types.Date) bigquery.NullTimestamp {
-	ts := bigquery.NullTimestamp{time.Now(), false}
+	ts := bigquery.NullTimestamp{Timestamp: time.Now(), Valid: false}
 	if d != nil {
 		if !d.IsZero() {
-			ts = bigquery.NullTimestamp{d.Time, true}
+			ts = bigquery.NullTimestamp{Timestamp: d.Time, Valid: true}
 		}
 	}
 
@@ -778,10 +777,10 @@ func DateToNullTimestamp(d *types.Date) bigquery.NullTimestamp {
 }
 
 func DateToNullDate(d *civil.Date) bigquery.NullDate {
-	dd := bigquery.NullDate{civil.Date{}, false}
+	dd := bigquery.NullDate{Date: civil.Date{}, Valid: false}
 	if d != nil {
 		if d.IsValid() {
-			dd = bigquery.NullDate{*d, true}
+			dd = bigquery.NullDate{Date: *d, Valid: true}
 		}
 	}
 
@@ -789,10 +788,10 @@ func DateToNullDate(d *civil.Date) bigquery.NullDate {
 }
 
 func TimeToNullDate(t *time.Time) bigquery.NullDate {
-	dd := bigquery.NullDate{civil.Date{}, false}
+	dd := bigquery.NullDate{Date: civil.Date{}, Valid: false}
 	if t != nil {
 		if !t.IsZero() {
-			dd = bigquery.NullDate{civil.Date{t.Year(), t.Month(), t.Day()}, true}
+			dd = bigquery.NullDate{Date: civil.Date{Year: t.Year(), Month: t.Month(), Day: t.Day()}, Valid: true}
 		}
 	}
 
@@ -800,10 +799,10 @@ func TimeToNullDate(t *time.Time) bigquery.NullDate {
 }
 
 func TimeToNullTime(t *time.Time) bigquery.NullTime {
-	tt := bigquery.NullTime{civil.Time{}, false}
+	tt := bigquery.NullTime{Time: civil.Time{}, Valid: false}
 	if t != nil {
 		if !t.IsZero() {
-			tt = bigquery.NullTime{civil.TimeOf(*t), true}
+			tt = bigquery.NullTime{Time: civil.TimeOf(*t), Valid: true}
 		}
 	}
 
@@ -811,10 +810,10 @@ func TimeToNullTime(t *time.Time) bigquery.NullTime {
 }
 
 func TimeToNullDateTime(t *time.Time) bigquery.NullDateTime {
-	tt := bigquery.NullDateTime{civil.DateTime{civil.Date{}, civil.Time{}}, false}
+	tt := bigquery.NullDateTime{DateTime: civil.DateTime{Date: civil.Date{}, Time: civil.Time{}}, Valid: false}
 	if t != nil {
 		if !t.IsZero() {
-			tt = bigquery.NullDateTime{civil.DateTimeOf(*t), true}
+			tt = bigquery.NullDateTime{DateTime: civil.DateTimeOf(*t), Valid: true}
 		}
 	}
 
@@ -822,10 +821,10 @@ func TimeToNullDateTime(t *time.Time) bigquery.NullDateTime {
 }
 
 func TimeCivilToNullTime(t *civil.Time) bigquery.NullTime {
-	tt := bigquery.NullTime{civil.Time{}, false}
+	tt := bigquery.NullTime{Time: civil.Time{}, Valid: false}
 	if t != nil {
 		if t.IsValid() {
-			tt = bigquery.NullTime{*t, true}
+			tt = bigquery.NullTime{Time: *t, Valid: true}
 		}
 	}
 
@@ -833,9 +832,9 @@ func TimeCivilToNullTime(t *civil.Time) bigquery.NullTime {
 }
 
 func BoolToNullBool(b *bool) bigquery.NullBool {
-	bb := bigquery.NullBool{false, false}
+	bb := bigquery.NullBool{Bool: false, Valid: false}
 	if b != nil {
-		bb = bigquery.NullBool{*b, true}
+		bb = bigquery.NullBool{Bool: *b, Valid: true}
 	}
 
 	return bb
