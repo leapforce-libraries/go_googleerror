@@ -142,7 +142,7 @@ func (service *Service) tableExists(dataset *bigquery.Dataset, tableHandle *bigq
 		if err != nil {
 			log.Fatal(err)
 		}
-		if table.TableId == tableHandle.TableId {
+		if table.TableID == tableHandle.TableID {
 			return true, nil
 		}
 	}
