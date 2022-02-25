@@ -328,7 +328,7 @@ func (service *Service) Insert(table *bigquery.Table, array []interface{}) *erro
 
 // Select returns RowIterator from arbitrary select_ query (was: Get)
 //
-func (service *Service) Select(sqlConfig *SqlConfig) (*bigquery.RowIterator, *errortools.Error) {
+func (service *Service) SelectRows(sqlConfig *SqlConfig) (*bigquery.RowIterator, *errortools.Error) {
 	if sqlConfig.TableOrViewName == nil {
 		return nil, errortools.ErrorMessage("TableOrViewName is nil pointer")
 	}
@@ -378,6 +378,43 @@ func (service *Service) Select(sqlConfig *SqlConfig) (*bigquery.RowIterator, *er
 	return service.select_(sql)
 }
 
+func (service *Service) Select(sqlConfig *SqlConfig, model interface{}) *errortools.Error {
+	if reflect.TypeOf(model).Kind() != reflect.Ptr {
+		return errortools.ErrorMessage("model must be a pointer to a slice")
+	}
+	if reflect.TypeOf(model).Elem().Kind() != reflect.Slice {
+		return errortools.ErrorMessage("model must be a pointer to a slice")
+	}
+
+	// run query
+	it, e := service.SelectRows(sqlConfig)
+	if e != nil {
+		return e
+	}
+
+	// b is the Value representation of the slice
+	b := reflect.ValueOf(model).Elem()
+
+	for {
+		// item is a pointer to a new instance of the slice's type
+		item := reflect.New(reflect.TypeOf(model).Elem().Elem()).Interface()
+		err := it.Next(item)
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		b = reflect.Append(b, reflect.ValueOf(item).Elem())
+	}
+
+	// set the value of the address model is pointing to to the filled slice
+	reflect.ValueOf(model).Elem().Set(b)
+
+	return nil
+}
+
 // SelectRaw returns RowIterator from arbitrary select_ query (was: Get)
 //
 func (service *Service) SelectRaw(sql string) (*bigquery.RowIterator, *errortools.Error) {
@@ -400,7 +437,7 @@ func (service *Service) select_(sql string) (*bigquery.RowIterator, *errortools.
 // Exists returns whether any arbitrary query returns any rows
 //
 func (service *Service) Exists(sqlConfig *SqlConfig) (bool, *errortools.Error) {
-	it, e := service.Select(sqlConfig)
+	it, e := service.SelectRows(sqlConfig)
 	if e != nil {
 		return false, e
 	}
@@ -521,7 +558,7 @@ func (service *Service) GetValue(sqlConfig *SqlConfig) (*bigquery.Value, *errort
 // GetValues returns multiple values from query
 //
 func (service *Service) GetValues(sqlConfig *SqlConfig) (*[]bigquery.Value, *errortools.Error) {
-	it, e := service.Select(sqlConfig)
+	it, e := service.SelectRows(sqlConfig)
 	if e != nil {
 		return nil, e
 	}
@@ -547,7 +584,7 @@ func (service *Service) GetStruct(sqlConfig *SqlConfig, model interface{}) (uint
 		return 0, errortools.ErrorMessage("SqlConfig must be a non-nil pointer")
 	}
 
-	it, e := service.Select(sqlConfig)
+	it, e := service.SelectRows(sqlConfig)
 	if e != nil {
 		return 0, e
 	}
