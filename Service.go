@@ -205,11 +205,19 @@ func (service *Service) ApiKey() string {
 }
 
 func (service *Service) ApiCallCount() int64 {
-	return service.oAuth2Service.ApiCallCount()
+	if service.authorizationMode == authorizationModeOAuth2 {
+		return service.oAuth2Service.ApiCallCount()
+	} else {
+		return service.httpService.RequestCount()
+	}
 }
 
 func (service *Service) ApiReset() {
-	service.oAuth2Service.ApiReset()
+	if service.authorizationMode == authorizationModeOAuth2 {
+		service.oAuth2Service.ApiReset()
+	} else {
+		service.httpService.ResetRequestCount()
+	}
 }
 
 func clientIdShort(clientId string) string {
