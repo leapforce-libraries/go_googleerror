@@ -11,19 +11,19 @@ import (
 
 type TokenTable struct {
 	apiName         string
-	clientID        string
+	clientId        string
 	token           *go_token.Token
 	bigQueryService *go_bigquery.Service
 }
 
-func NewTokenTable(apiName string, clientID string, bigQueryService *go_bigquery.Service) (*TokenTable, *errortools.Error) {
+func NewTokenTable(apiName string, clientId string, bigQueryService *go_bigquery.Service) (*TokenTable, *errortools.Error) {
 	if bigQueryService == nil {
 		return nil, errortools.ErrorMessage("BigQueryService is a nil pointer")
 	}
 
 	return &TokenTable{
 		apiName:         apiName,
-		clientID:        clientID,
+		clientId:        clientId,
 		bigQueryService: bigQueryService,
 	}, nil
 }
@@ -48,7 +48,7 @@ func (t *TokenTable) SetToken(token *go_token.Token, save bool) *errortools.Erro
 
 func (t *TokenTable) RetrieveToken() *errortools.Error {
 	sqlSelect := "TokenType, AccessToken, RefreshToken, Expiry, Scope"
-	sqlWhere := fmt.Sprintf("Api = '%s' AND ClientID = '%s'", t.apiName, t.clientID)
+	sqlWhere := fmt.Sprintf("Api = '%s' AND ClientId = '%s'", t.apiName, t.clientId)
 
 	token := new(go_token.Token)
 
@@ -121,19 +121,19 @@ func (t *TokenTable) SaveToken() *errortools.Error {
 	sql := "MERGE `" + tableRefreshToken + "` AS TARGET " +
 		"USING  (SELECT '" +
 		t.apiName + "' AS Api,'" +
-		t.clientID + "' AS ClientID," +
+		t.clientId + "' AS ClientId," +
 		tokenType + " AS TokenType," +
 		accessToken + " AS AccessToken," +
 		refreshToken + " AS RefreshToken," +
 		expiry + " AS Expiry," +
 		scope + " AS Scope) AS SOURCE " +
 		" ON TARGET.Api = SOURCE.Api " +
-		" AND TARGET.ClientID = SOURCE.ClientID " +
+		" AND TARGET.ClientId = SOURCE.ClientId " +
 		"WHEN MATCHED THEN " +
 		"	UPDATE " + sqlUpdate +
 		" WHEN NOT MATCHED BY TARGET THEN " +
-		"	INSERT (Api, ClientID, TokenType, AccessToken, RefreshToken, Expiry, Scope) " +
-		"	VALUES (SOURCE.Api, SOURCE.ClientID, SOURCE.TokenType, SOURCE.AccessToken, SOURCE.RefreshToken, SOURCE.Expiry, SOURCE.Scope)"
+		"	INSERT (Api, ClientId, TokenType, AccessToken, RefreshToken, Expiry, Scope) " +
+		"	VALUES (SOURCE.Api, SOURCE.ClientId, SOURCE.TokenType, SOURCE.AccessToken, SOURCE.RefreshToken, SOURCE.Expiry, SOURCE.Scope)"
 
 	return t.bigQueryService.Run(sql, "saving token")
 }
