@@ -6,13 +6,14 @@ type ErrorResponse struct {
 	Error struct {
 		Code    int    `json:"code"`
 		Message string `json:"message"`
-		Errors  []struct {
-			Domain       string `json:"domain"`
-			Message      string `json:"message"`
-			Reason       string `json:"reason"`
-			Location     string `json:"location"`
-			LocationType string `json:"locationType"`
-		} `json:"errors"`
-		Status string `json:"status"`
+		Status  string `json:"status"`
+		Details []struct {
+			Type   string `json:"@type"`
+			Errors []struct {
+				ErrorCode map[string]string `json:"errorCode"`
+				Message   string            `json:"message"`
+			} `json:"errors"`
+			RequestId string `json:"requestId"`
+		} `json:"details"`
 	} `json:"error"`
 }
