@@ -23,6 +23,7 @@ type Service struct {
 	accessToken       *string
 	httpService       *go_http.Service
 	oAuth2Service     *oauth2.Service
+	errorResponse     *ErrorResponse
 }
 
 const (
@@ -151,8 +152,8 @@ func (service *Service) HttpRequest(requestConfig *go_http.RequestConfig) (*http
 	var e *errortools.Error
 
 	// add error model
-	errorResponse := ErrorResponse{}
-	requestConfig.ErrorModel = &errorResponse
+	service.errorResponse = &ErrorResponse{}
+	requestConfig.ErrorModel = service.errorResponse
 
 	if service.authorizationMode == authorizationModeOAuth2 {
 		request, response, e = service.oAuth2Service.HttpRequest(requestConfig)
@@ -172,8 +173,8 @@ func (service *Service) HttpRequest(requestConfig *go_http.RequestConfig) (*http
 	}
 
 	if e != nil {
-		if errorResponse.Error.Message != "" {
-			e.SetMessage(errorResponse.Error.Message)
+		if service.errorResponse.Error.Message != "" {
+			e.SetMessage(service.errorResponse.Error.Message)
 		}
 	}
 
@@ -222,4 +223,8 @@ func (service *Service) ApiReset() {
 
 func clientIdShort(clientId string) string {
 	return strings.Split(clientId, ".")[0]
+}
+
+func (service *Service) ErrorResponse() *ErrorResponse {
+	return service.errorResponse
 }
