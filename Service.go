@@ -142,9 +142,10 @@ func NewServiceWithApiKey(cfg *ServiceWithApiKeyConfig) (*Service, *errortools.E
 	}, nil
 }
 
+/*
 func (service *Service) InitToken(scope string, accessType *string, prompt *string, state *string) *errortools.Error {
 	return service.oAuth2Service.InitToken(scope, accessType, prompt, state)
-}
+}*/
 
 func (service *Service) HttpRequest(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	var request *http.Request
@@ -194,7 +195,7 @@ func (service *Service) ValidateToken() (*go_token.Token, *errortools.Error) {
 }
 
 func (service *Service) GetTokenFromCode(r *http.Request) *errortools.Error {
-	return service.oAuth2Service.GetTokenFromCode(r)
+	return service.oAuth2Service.GetTokenFromCode(r, nil)
 }
 
 func (service *Service) ApiName() string {
