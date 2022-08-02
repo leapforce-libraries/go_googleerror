@@ -29,6 +29,7 @@ type SqlConfig struct {
 	SqlWhere         *string
 	SqlOrderBy       *string
 	SqlLimit         *uint64
+	SqlRaw           *string
 	ModelOrSchema    interface{}
 }
 
@@ -329,50 +330,56 @@ func (service *Service) Insert(table *bigquery.Table, array []interface{}) *erro
 // Select returns RowIterator from arbitrary select_ query (was: Get)
 //
 func (service *Service) SelectRows(sqlConfig *SqlConfig) (*bigquery.RowIterator, *errortools.Error) {
-	if sqlConfig.TableOrViewName == nil {
-		return nil, errortools.ErrorMessage("TableOrViewName is nil pointer")
-	}
+	var sql = ""
 
-	_sqlSelect := "*"
-	if sqlConfig.SqlSelect != nil {
-		_sqlSelect = *sqlConfig.SqlSelect
-	}
-
-	_sqlDistinct := ""
-	if sqlConfig.SqlDistinct != nil {
-		if *sqlConfig.SqlDistinct {
-			_sqlDistinct = " DISTINCT "
+	if sqlConfig.SqlRaw != nil {
+		sql = *sqlConfig.SqlRaw
+	} else {
+		if sqlConfig.TableOrViewName == nil {
+			return nil, errortools.ErrorMessage("TableOrViewName is nil pointer")
 		}
-	}
 
-	_sqlAlias := ""
-	if sqlConfig.TableOrViewAlias != nil {
-		_sqlAlias = fmt.Sprintf("%s ", *sqlConfig.TableOrViewAlias)
-	}
-
-	_sqlWhere := ""
-	if sqlConfig.SqlWhere != nil {
-		if !strings.HasSuffix(strings.ToUpper(*sqlConfig.SqlWhere), "WHERE ") {
-			_sqlWhere = fmt.Sprintf("WHERE %s", *sqlConfig.SqlWhere)
+		_sqlSelect := "*"
+		if sqlConfig.SqlSelect != nil {
+			_sqlSelect = *sqlConfig.SqlSelect
 		}
-	}
 
-	_sqlOrderBy := ""
-	if sqlConfig.SqlOrderBy != nil {
-		_sqlOrderBy = *sqlConfig.SqlOrderBy
-	}
-	if _sqlOrderBy != "" {
-		if !strings.HasSuffix(strings.ToUpper(_sqlOrderBy), "ORDER BY ") {
-			_sqlOrderBy = fmt.Sprintf("ORDER BY %s", _sqlOrderBy)
+		_sqlDistinct := ""
+		if sqlConfig.SqlDistinct != nil {
+			if *sqlConfig.SqlDistinct {
+				_sqlDistinct = " DISTINCT "
+			}
 		}
-	}
 
-	_sqlLimit := ""
-	if sqlConfig.SqlLimit != nil {
-		_sqlLimit = fmt.Sprintf("LIMIT %v", *sqlConfig.SqlLimit)
-	}
+		_sqlAlias := ""
+		if sqlConfig.TableOrViewAlias != nil {
+			_sqlAlias = fmt.Sprintf("%s ", *sqlConfig.TableOrViewAlias)
+		}
 
-	sql := "SELECT " + _sqlDistinct + _sqlSelect + " FROM `" + sqlConfig.DatasetName + "." + *sqlConfig.TableOrViewName + "` " + _sqlAlias + " " + _sqlWhere + " " + _sqlOrderBy + " " + _sqlLimit
+		_sqlWhere := ""
+		if sqlConfig.SqlWhere != nil {
+			if !strings.HasSuffix(strings.ToUpper(*sqlConfig.SqlWhere), "WHERE ") {
+				_sqlWhere = fmt.Sprintf("WHERE %s", *sqlConfig.SqlWhere)
+			}
+		}
+
+		_sqlOrderBy := ""
+		if sqlConfig.SqlOrderBy != nil {
+			_sqlOrderBy = *sqlConfig.SqlOrderBy
+		}
+		if _sqlOrderBy != "" {
+			if !strings.HasSuffix(strings.ToUpper(_sqlOrderBy), "ORDER BY ") {
+				_sqlOrderBy = fmt.Sprintf("ORDER BY %s", _sqlOrderBy)
+			}
+		}
+
+		_sqlLimit := ""
+		if sqlConfig.SqlLimit != nil {
+			_sqlLimit = fmt.Sprintf("LIMIT %v", *sqlConfig.SqlLimit)
+		}
+
+		sql = "SELECT " + _sqlDistinct + _sqlSelect + " FROM `" + sqlConfig.DatasetName + "." + *sqlConfig.TableOrViewName + "` " + _sqlAlias + " " + _sqlWhere + " " + _sqlOrderBy + " " + _sqlLimit
+	}
 	//fmt.Println(sql)
 
 	return service.select_(sql)
