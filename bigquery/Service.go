@@ -628,6 +628,9 @@ func (service *Service) CopyObjectToTable(config *CopyObjectToTableConfig) *erro
 	if config.SqlConfig == nil {
 		return errortools.ErrorMessage("SqlConfig is nil pointer")
 	}
+	if config.SqlConfig.ModelOrSchema == nil {
+		return errortools.ErrorMessage("ModelOrSchema is nil pointer")
+	}
 
 	//if rowCount > 0 {
 	// get GCSReference
@@ -635,12 +638,19 @@ func (service *Service) CopyObjectToTable(config *CopyObjectToTableConfig) *erro
 
 	// set FileConfig attribute of GCSReference struct
 	var dataFormat bigquery.DataFormat = "NEWLINE_DELIMITED_JSON"
-	schema1, err := bigquery.InferSchema(config.SqlConfig.ModelOrSchema)
-	if err != nil {
-		return errortools.ErrorMessage(err)
+
+	var schema bigquery.Schema
+	if (reflect.TypeOf(config.SqlConfig.ModelOrSchema) == reflect.TypeOf(bigquery.Schema{})) {
+		schema = config.SqlConfig.ModelOrSchema.(bigquery.Schema)
+	} else {
+		schema1, err := bigquery.InferSchema(config.SqlConfig.ModelOrSchema)
+		if err != nil {
+			return errortools.ErrorMessage(err)
+		}
+		schema = schema1
 	}
 
-	flConfig := bigquery.FileConfig{SourceFormat: dataFormat, Schema: schema1}
+	flConfig := bigquery.FileConfig{SourceFormat: dataFormat, Schema: schema}
 	gcsRef.FileConfig = flConfig
 
 	// load data from GCN object to Service

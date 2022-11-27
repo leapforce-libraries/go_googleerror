@@ -162,8 +162,7 @@ func (service *Service) HttpRequest(requestConfig *go_http.RequestConfig) (*http
 		if service.authorizationMode == authorizationModeApiKey {
 			// add api key
 			requestConfig.SetParameter("key", *service.apiKey)
-		}
-		if service.accessToken != nil {
+		} else if service.authorizationMode == authorizationModeAccessToken {
 			// add accesstoken to header
 			header := http.Header{}
 			header.Set("Authorization", fmt.Sprintf("Bearer %s", *service.accessToken))
