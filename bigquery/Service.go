@@ -760,6 +760,15 @@ func NullFloat64ToFloat64(i bigquery.NullFloat64) *float64 {
 	}
 }
 
+func Float32ToNullFloat64(i *float32) bigquery.NullFloat64 {
+	ii := bigquery.NullFloat64{Float64: 0, Valid: false}
+	if i != nil {
+		ii = bigquery.NullFloat64{Float64: float64(*i), Valid: true}
+	}
+
+	return ii
+}
+
 func StringToNullString(i *string) bigquery.NullString {
 	ii := bigquery.NullString{StringVal: "", Valid: false}
 	if i != nil {
