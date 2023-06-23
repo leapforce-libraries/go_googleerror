@@ -14,7 +14,6 @@ import (
 )
 
 // Service stores GoogleService configuration
-//
 type Service struct {
 	apiName           string
 	authorizationMode authorizationMode
@@ -156,6 +155,9 @@ func (service *Service) HttpRequest(requestConfig *go_http.RequestConfig) (*http
 	service.errorResponse = &ErrorResponse{}
 	requestConfig.ErrorModel = service.errorResponse
 
+	header := http.Header{}
+	header.Set("Authorization", fmt.Sprintf("Bearer %s", *service.accessToken))
+
 	if service.authorizationMode == authorizationModeOAuth2 {
 		request, response, e = service.oAuth2Service.HttpRequest(requestConfig)
 	} else {
@@ -186,7 +188,7 @@ func (service *Service) HttpRequest(requestConfig *go_http.RequestConfig) (*http
 }
 
 func (service *Service) AuthorizeUrl(scope string, accessType *string, prompt *string, state *string) string {
-	return service.oAuth2Service.AuthorizeUrl(scope, accessType, prompt, state)
+	return service.oAuth2Service.AuthorizeUrl(&scope, accessType, prompt, state)
 }
 
 func (service *Service) ValidateToken() (*go_token.Token, *errortools.Error) {

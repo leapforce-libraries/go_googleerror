@@ -1,7 +1,5 @@
 package google
 
-// GoogleError stores general google API error response
-//
 type ErrorResponse struct {
 	Error struct {
 		Code    int    `json:"code"`
