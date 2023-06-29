@@ -155,9 +155,6 @@ func (service *Service) HttpRequest(requestConfig *go_http.RequestConfig) (*http
 	service.errorResponse = &ErrorResponse{}
 	requestConfig.ErrorModel = service.errorResponse
 
-	header := http.Header{}
-	header.Set("Authorization", fmt.Sprintf("Bearer %s", *service.accessToken))
-
 	if service.authorizationMode == authorizationModeOAuth2 {
 		request, response, e = service.oAuth2Service.HttpRequest(requestConfig)
 	} else {

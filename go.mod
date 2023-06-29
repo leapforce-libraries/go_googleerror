@@ -4,21 +4,21 @@ go 1.20
 
 require (
 	cloud.google.com/go v0.110.2
-	cloud.google.com/go/bigquery v1.51.2
-	cloud.google.com/go/storage v1.30.1
+	cloud.google.com/go/bigquery v1.50.0
+	cloud.google.com/go/storage v1.31.0
 	github.com/leapforce-libraries/go_errortools v0.0.0-20230306211452-9ccee0cdafe8
 	github.com/leapforce-libraries/go_http v0.0.0-20230420114702-86cc77fcf983
 	github.com/leapforce-libraries/go_oauth2 v0.0.0-20230623131113-82064e679034
 	github.com/leapforce-libraries/go_types v0.0.0-20230425074203-34c9cae0aa4e
-	google.golang.org/api v0.128.0
+	google.golang.org/api v0.126.0
 )
 
 require (
 	cloud.google.com/go/compute v1.19.3 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	cloud.google.com/go/iam v0.13.0 // indirect
+	cloud.google.com/go/iam v1.1.0 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
-	github.com/apache/arrow/go/v12 v12.0.0 // indirect
+	github.com/apache/arrow/go/v11 v11.0.0 // indirect
 	github.com/apache/thrift v0.16.0 // indirect
 	github.com/getsentry/sentry-go v0.19.0 // indirect
 	github.com/goccy/go-json v0.9.11 // indirect
@@ -30,8 +30,8 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/s2a-go v0.1.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.2.4 // indirect
-	github.com/googleapis/gax-go/v2 v2.10.0 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
+	github.com/googleapis/gax-go/v2 v2.11.0 // indirect
 	github.com/klauspost/asmfmt v1.3.2 // indirect
 	github.com/klauspost/compress v1.15.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
