@@ -54,7 +54,6 @@ func (sqlConfig *SqlConfig) FullTableName() string {
 }
 
 // Service stores context of Service object
-//
 type Service struct {
 	bigQueryClient *bigquery.Client
 	context        context.Context
@@ -177,7 +176,6 @@ func (service *Service) getTableHandle(sqlConfig *SqlConfig) (*bigquery.Dataset,
 }
 
 // CreateTable : creates table based on passed struct scheme
-//
 func (service *Service) CreateTable(sqlConfig *SqlConfig, data *[]interface{}, recreate bool) (*bigquery.Table, *errortools.Error) {
 	dataset, tableHandle, e := service.getTableHandle(sqlConfig)
 	if e != nil {
@@ -264,7 +262,6 @@ func (service *Service) DeleteTable(sqlConfig *SqlConfig) *errortools.Error {
 }
 
 // Run is a generic function that runs the passed sql query in Service
-//
 func (service *Service) Run(sql string, pendingMessage string) *errortools.Error {
 	q := service.bigQueryClient.Query(sql)
 
@@ -296,7 +293,6 @@ func (service *Service) Run(sql string, pendingMessage string) *errortools.Error
 }
 
 // Insert : generic function to batchwise stream data to a Service table
-//
 func (service *Service) Insert(table *bigquery.Table, array []interface{}) *errortools.Error {
 	ins := table.Inserter()
 
@@ -328,7 +324,6 @@ func (service *Service) Insert(table *bigquery.Table, array []interface{}) *erro
 }
 
 // Select returns RowIterator from arbitrary select_ query (was: Get)
-//
 func (service *Service) SelectRows(sqlConfig *SqlConfig) (*bigquery.RowIterator, *errortools.Error) {
 	var sql = ""
 
@@ -423,13 +418,11 @@ func (service *Service) Select(sqlConfig *SqlConfig, model interface{}) *errorto
 }
 
 // SelectRaw returns RowIterator from arbitrary select_ query (was: Get)
-//
 func (service *Service) SelectRaw(sql string) (*bigquery.RowIterator, *errortools.Error) {
 	return service.select_(sql)
 }
 
 // select_ returns RowIterator from arbitrary select_ query
-//
 func (service *Service) select_(sql string) (*bigquery.RowIterator, *errortools.Error) {
 	q := service.bigQueryClient.Query(sql)
 
@@ -442,7 +435,6 @@ func (service *Service) select_(sql string) (*bigquery.RowIterator, *errortools.
 }
 
 // Exists returns whether any arbitrary query returns any rows
-//
 func (service *Service) Exists(sqlConfig *SqlConfig) (bool, *errortools.Error) {
 	it, e := service.SelectRows(sqlConfig)
 	if e != nil {
@@ -459,7 +451,6 @@ func (service *Service) Exists(sqlConfig *SqlConfig) (bool, *errortools.Error) {
 }
 
 // Delete deletes rows from table
-//
 func (service *Service) Delete(sqlConfig *SqlConfig) *errortools.Error {
 	if sqlConfig == nil {
 		return errortools.ErrorMessage("sqlConfig is nil pointer")
@@ -486,7 +477,6 @@ func (service *Service) Delete(sqlConfig *SqlConfig) *errortools.Error {
 
 // Merge runs merge query in Service, schema contains the table schema which needs to match the Service table.
 // All properties of model with suffix 'Json' will be ignored. All rows with Ignore = TRUE will be ignored as well.
-//
 func (service *Service) Merge(sqlConfigSource *SqlConfig, sqlConfigTarget *SqlConfig, joinFields []string, doNotUpdateFields *[]string, hasIgnoreField bool) *errortools.Error {
 	if sqlConfigSource == nil {
 		return errortools.ErrorMessage("sqlConfigSource is nil pointer")
@@ -548,7 +538,6 @@ func (service *Service) Merge(sqlConfigSource *SqlConfig, sqlConfigTarget *SqlCo
 }
 
 // GetValue returns one single value from query
-//
 func (service *Service) GetValue(sqlConfig *SqlConfig) (*bigquery.Value, *errortools.Error) {
 	values, e := service.GetValues(sqlConfig)
 	if e != nil {
@@ -563,7 +552,6 @@ func (service *Service) GetValue(sqlConfig *SqlConfig) (*bigquery.Value, *errort
 }
 
 // GetValues returns multiple values from query
-//
 func (service *Service) GetValues(sqlConfig *SqlConfig) (*[]bigquery.Value, *errortools.Error) {
 	it, e := service.SelectRows(sqlConfig)
 	if e != nil {
@@ -585,7 +573,6 @@ func (service *Service) GetValues(sqlConfig *SqlConfig) (*[]bigquery.Value, *err
 }
 
 // GetStruct returns struct from query
-//
 func (service *Service) GetStruct(sqlConfig *SqlConfig, model interface{}) (uint64, *errortools.Error) {
 	if sqlConfig == nil {
 		return 0, errortools.ErrorMessage("SqlConfig must be a non-nil pointer")
@@ -619,7 +606,6 @@ type CopyObjectToTableConfig struct {
 }
 
 // CopyObjectToTable copies content of GCS object to table
-//
 func (service *Service) CopyObjectToTable(config *CopyObjectToTableConfig) *errortools.Error {
 	if config == nil {
 		return errortools.ErrorMessage("CopyObjectToTableConfig is nil pointer")
