@@ -502,8 +502,9 @@ func (service *Service) Merge(sqlConfigSource *SqlConfig, sqlConfigTarget *SqlCo
 
 	for i := 0; i < v.NumField(); i++ {
 		fieldName := vType.Field(i).Name
+		jsonTag := vType.Field(i).Tag.Get("json")
 
-		if !strings.HasSuffix(fieldName, "Json") && fieldName != "Ignore" {
+		if !strings.HasSuffix(fieldName, "Json") && fieldName != "Ignore" && jsonTag != "-" {
 			// fieldNames ending with "Json" should not be imported
 			_fieldName := "`" + fieldName + "`"
 
